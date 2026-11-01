@@ -85,7 +85,7 @@ export const recognition = [
   'Represented India, Karate World Championship (2018)',
   'Sub-Head, Logistics, 4C The Marketing Cell, NMIMS (2023–24)',
   'Best Executive, Logistics, 4C The Marketing Cell (2022–23)',
-  'Bloomberg Market Concepts certificate',
+  'Bloomberg Market Concepts certificate (2026)',
 ]
 
 export type Media =
