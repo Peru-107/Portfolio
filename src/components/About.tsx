@@ -41,7 +41,7 @@ export function About() {
       <div className="about__tools">
         {site.tools.map((t, i) => (
           <div key={t.group} className="about__group" data-reveal="fade" style={{ ['--i' as string]: i }}>
-            <h3 data-reveal="line"><span className="mark" data-reveal="mark">{t.group}</span></h3>
+            <h3><span className="mark" data-reveal="mark">{t.group}</span></h3>
             <ul>
               {t.items.map((item) => (
                 <li key={item}>{item}</li>

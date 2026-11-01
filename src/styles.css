@@ -223,7 +223,7 @@ button { font: inherit; color: inherit; }
 .about__lead { grid-column: 4 / span 9; font-family: var(--display); font-weight: 500; font-size: clamp(24px, 2.9vw, 46px); line-height: 1.18; letter-spacing: -0.015em; }
 .about__rest { grid-column: 4 / span 6; margin-top: 40px; font-size: var(--fs-body); color: var(--ink-2); max-width: 54ch; }
 .about__tools { grid-column: 4 / span 9; margin-top: clamp(64px, 10vh, 110px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
-.about__group h3 { font-size: var(--fs-ui); font-weight: 600; color: var(--ink-soft); padding-bottom: 14px; border-bottom: 1px solid rgba(33, 37, 41, 0.2); margin-bottom: 14px; }
+.about__group h3 { font-size: var(--fs-ui); font-weight: 600; color: var(--ink-soft); margin-bottom: 16px; }
 .about__group li { font-size: var(--fs-body); font-weight: 500; padding: 4px 0; }
 
 /* Contact */
