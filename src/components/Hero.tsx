@@ -23,12 +23,16 @@ export function Hero({ ready }: { ready: boolean }) {
       setHint(null)
     }
     window.addEventListener('ink:played', onPlay)
+    // Gone as soon as the page moves on
+    const onScroll = () => scrollY > 40 && setHint(null)
+    window.addEventListener('scroll', onScroll, { passive: true })
     const t = window.setTimeout(() => {
       if (!found && scrollY < 40) setHint(touch ? 'Tilt your phone.' : 'Type something. It stays.')
     }, 4500)
     return () => {
       window.clearTimeout(t)
       window.removeEventListener('ink:played', onPlay)
+      window.removeEventListener('scroll', onScroll)
     }
   }, [ready])
 
