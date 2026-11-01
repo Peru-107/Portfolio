@@ -43,7 +43,9 @@ export function Hero({ ready }: { ready: boolean }) {
       const scale = 0.6
       const lift = () => {
         const top = mark.current!.offsetTop
-        return Math.max(innerHeight * 0.13, 96) - top * scale
+        // Clear of the header on every screen, short landscape phones included
+        const header = document.querySelector('.header')?.getBoundingClientRect().bottom ?? 80
+        return Math.max(innerHeight * 0.13, header + 12) - top * scale
       }
       // Linear against the scroll: an eased glide starts and ends slowly, which reads as the page stopping
       const tl = gsap.timeline({
