@@ -62,8 +62,9 @@ export default function App() {
           <Case key={slug} slug={slug} />
         ) : (
           <main>
-            <Hero ready={ready} />
-            <Work />
+            {/* Pinned sections sit in their own wrappers: GSAP's pin spacer then never disturbs React's siblings */}
+            <div className="pin-wrap"><Hero ready={ready} /></div>
+            <div className="pin-wrap"><Work /></div>
             <About />
             <Experience />
             <Contact />
