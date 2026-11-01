@@ -22,7 +22,8 @@ type Glyph = { ch: string; x: number; y: number; size: number; born: number; a: 
 
 function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layout: Layout, box?: Box | null, extras: Glyph[] = []) {
   // A word has small counters (the slit in the e): draw it sharp and full size
-  const scale = layout === 'wordmark' ? 1 : 0.5
+  // drawn at the screen's real pixel density (up to 2x) so edges stay crisp on high-DPI displays
+  const scale = layout === 'wordmark' ? Math.min(window.devicePixelRatio || 1, 2) : 0.5
   // Resizing a canvas reallocates it; only do that when the size really changed
   const cw = Math.max(2, Math.round(w * scale))
   const ch = Math.max(2, Math.round(h * scale))
@@ -52,7 +53,7 @@ function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layo
   const x = box ? box.x * scale - m.actualBoundingBoxLeft : word || narrow ? (c.width - m.width) / 2 : c.width * 0.95 - m.width
   const y = box ? box.y * scale + (bh - glyphH) / 2 + m.actualBoundingBoxAscent : word ? c.height * (w < 760 ? 0.13 : 0.12) + m.actualBoundingBoxAscent : layout === 'center' ? (c.height - glyphH) / 2 + m.actualBoundingBoxAscent : narrow ? c.height * 0.1 + m.actualBoundingBoxAscent : (c.height - glyphH) * 0.42 + m.actualBoundingBoxAscent
   ctx.fillStyle = '#fff'
-  ctx.filter = layout === 'wordmark' ? 'blur(0.6px)' : 'blur(2px)'
+  ctx.filter = layout === 'wordmark' ? `blur(${0.5 * scale}px)` : 'blur(2px)'
   ctx.fillText(text, x, y)
   for (const g of extras) {
     ctx.font = `800 ${g.size * scale}px Panchang, "Arial Black", sans-serif`

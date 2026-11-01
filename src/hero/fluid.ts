@@ -111,8 +111,9 @@ const DISPLAY = head + /* glsl */ `
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   void main() {
     vec2 vel = texture2D(uVelocity, vUv).xy;
-    float m = texture2D(uMask, vUv + vel * 0.000025).r;
-    float mask = smoothstep(0.42, 0.58, m) * reveal;
+    // The letter's edge stays put (no wobble from the flow), so straight lines stay straight
+    float m = texture2D(uMask, vUv).r;
+    float mask = smoothstep(0.4, 0.6, m) * reveal;
 
     vec3 dye = texture2D(uDye, vUv).rgb;
     float dl = length(texture2D(uDye, vUv - vec2(dyeTexel.x, 0.0)).rgb);
@@ -178,8 +179,9 @@ export class InkField {
   pressed = false
 
   constructor(private o: InkOptions) {
-    this.renderer = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, alpha: false, powerPreference: 'high-performance' })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+    // preserveDrawingBuffer lets the page take a picture of the ink (the printable postcard)
+    this.renderer = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true })
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.autoClear = false
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2))
     this.quad.frustumCulled = false
@@ -364,7 +366,7 @@ export class InkField {
     this.vel.swap()
     this.pass('advect', this.vel.write, { uVelocity: this.vel.read.texture, uSource: this.vel.read.texture, velTexel: [1 / this.simW, 1 / this.simH], dt, dissipation: 0.25, holdInside: 1, shift: this.shiftNow }, sim)
     this.vel.swap()
-    this.pass('advect', this.dye.write, { uVelocity: this.vel.read.texture, uSource: this.dye.read.texture, velTexel: [1 / this.simW, 1 / this.simH], dt, dissipation: 1.4, holdInside: 0.06, shift: this.shiftNow }, dyeT)
+    this.pass('advect', this.dye.write, { uVelocity: this.vel.read.texture, uSource: this.dye.read.texture, velTexel: [1 / this.simW, 1 / this.simH], dt, dissipation: 1.4, holdInside: 0.03, shift: this.shiftNow }, dyeT)
     this.dye.swap()
   }
 
@@ -388,11 +390,11 @@ export class InkField {
       this.splat(q.x, q.y, q.dx, q.dy, q.color, q.r)
     }
     // Slow drips keep the letter wet when nobody is touching it
-    if (this.t - this.ambientAt > 0.35 && this.maskPoints.length) {
+    if (this.t - this.ambientAt > 0.2 && this.maskPoints.length) {
       this.ambientAt = this.t
       const pt = this.maskPoints[Math.floor(Math.random() * this.maskPoints.length)]!
       const a = Math.random() * Math.PI * 2
-      this.splat(pt[0], pt[1], Math.cos(a) * 70, Math.sin(a) * 70 - 25, this.nextInk(0.9), 0.005)
+      this.splat(pt[0], pt[1], Math.cos(a) * 70, Math.sin(a) * 70 - 25, this.nextInk(1), 0.006)
     }
 
     // Content moved since last frame: shift the whole field with it
