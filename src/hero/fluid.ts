@@ -111,9 +111,9 @@ const DISPLAY = head + /* glsl */ `
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   void main() {
     vec2 vel = texture2D(uVelocity, vUv).xy;
-    // The letter's edge stays put (no wobble from the flow), so straight lines stay straight
-    float m = texture2D(uMask, vUv).r;
-    float mask = smoothstep(0.4, 0.6, m) * reveal;
+    // The flow nudges the letter's edge, so it sways with the ink
+    float m = texture2D(uMask, vUv + vel * 0.000025).r;
+    float mask = smoothstep(0.42, 0.58, m) * reveal;
 
     vec3 dye = texture2D(uDye, vUv).rgb;
     float dl = length(texture2D(uDye, vUv - vec2(dyeTexel.x, 0.0)).rgb);
