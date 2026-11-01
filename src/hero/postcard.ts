@@ -230,14 +230,32 @@ function words(ctx: Ctx, lines: string[], cx: number, cy: number, size: number, 
 }
 
 // The credit, the same on every card
-function credit(ctx: Ctx, color: string, _quiet: string, accent: string) {
+// Signed by whoever wrote it, if they gave a name; the link is always there.
+// Each sits on a small label of the card's own ground, so it reads over any ink.
+function credit(ctx: Ctx, meta: Meta, color: string, quiet: string, accent: string) {
+  const ground = color === C.paper ? 'rgba(22, 25, 28, 0.85)' : rgba(C.paper, 0.88)
+  const label = (t: string, x: number, size: number, ink: string, right = false) => {
+    mono(ctx, size, ink)
+    const w = ctx.measureText(t).width
+    const left = right ? x - w : x
+    ctx.fillStyle = ground
+    ctx.beginPath()
+    ctx.roundRect(left - 14, H - 56 - size - 4, w + 28, size + 18, 6)
+    ctx.fill()
+    ctx.fillStyle = ink
+    ctx.fillText(t, left, H - 56)
+  }
   ctx.fillStyle = accent
-  ctx.fillRect(72, H - 92, 32, 4)
-  mono(ctx, 24, color)
-  ctx.fillText(SITE, 72, H - 56)
+  ctx.fillRect(72, H - 104, 32, 4)
+  if (meta.name) {
+    label(`Written by ${meta.name}`, 72, 28, color)
+    label(SITE, W - 72, 22, quiet, true)
+  } else {
+    label(SITE, 72, 24, color)
+  }
 }
 
-type Meta = { no: string; date: string; time: string }
+type Meta = { no: string; date: string; time: string; name: string }
 
 // 1. Bloom: pale paper, warm ink blooming in from two corners, a fine grid
 function bloomCard(ctx: Ctx, rnd: Rnd, lines: string[], meta: Meta) {
@@ -254,7 +272,7 @@ function bloomCard(ctx: Ctx, rnd: Rnd, lines: string[], meta: Meta) {
   for (const [i, t] of [`${meta.date}, ${meta.time}`, `Written in ink, No. ${meta.no}`].entries()) ctx.fillText(t, W - 72 - ctx.measureText(t).width, 92 + i * 30)
   words(ctx, lines, W / 2, H / 2, 68, C.ink)
   swatches(ctx, W / 2 - 59, H - 80, [C.ink, C.deep, C.magma, C.ember], rgba(C.ink, 0.2))
-  credit(ctx, C.ink, C.soft, C.magma)
+  credit(ctx, meta, C.ink, C.soft, C.magma)
 }
 
 // 2. Night: dark ground, the ink glowing magma, a technical frame and rulers
@@ -286,7 +304,7 @@ function nightCard(ctx: Ctx, rnd: Rnd, lines: string[], meta: Meta) {
   ctx.fillText(`19.07° N, 72.87° E   ${meta.date}   ${meta.time}`, 120, 146)
   words(ctx, lines, W / 2, H / 2 + 10, 70, C.paper)
   grain(ctx, rnd, 0.1)
-  credit(ctx, C.paper, 'rgba(233, 236, 239, 0.6)', C.magma)
+  credit(ctx, meta, C.paper, 'rgba(233, 236, 239, 0.6)', C.magma)
 }
 
 // 3. Proof: a typeset proof sheet. Ink pooled on the right, words set left, notes in the margin
@@ -325,14 +343,14 @@ function proofCard(ctx: Ctx, rnd: Rnd, lines: string[], meta: Meta) {
   mono(ctx, 18, C.soft)
   ctx.fillText('Courier Prime, 64 pt', 190, H - 180)
   swatches(ctx, split - 140, H - 180, [C.ink, C.deep, C.magma, C.ember], rgba(C.ink, 0.2))
-  credit(ctx, C.ink, C.soft, C.magma)
+  credit(ctx, meta, C.ink, C.soft, C.magma)
 }
 
 const designs = [bloomCard, nightCard, proofCard]
 let next = Math.floor(Math.random() * designs.length)
 
 // Each press prints the next design, so pressing again gives a new card
-export async function postcard(text: string) {
+export async function postcard(text: string, name = '') {
   await document.fonts.load('400 64px "Courier Prime"')
   const c = document.createElement('canvas')
   c.width = W
@@ -344,6 +362,7 @@ export async function postcard(text: string) {
     no: String(seed % 10000).padStart(4, '0'),
     date: new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(now),
     time: new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(now),
+    name: name.trim().slice(0, 28),
   }
   const design = designs[next]!
   next = (next + 1) % designs.length

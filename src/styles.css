@@ -484,6 +484,9 @@ button { font: inherit; color: inherit; }
 @keyframes caret { 50% { opacity: 0; } }
 .tw__actions { display: flex; gap: 8px; opacity: 0; transform: translateY(6px); transition: opacity 0.4s, transform 0.5s var(--ease-out); }
 .tw__actions[data-on] { opacity: 1; transform: none; pointer-events: auto; }
+.tw__sign { min-height: 40px; width: 210px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(233, 236, 239, 0.7); font-family: 'Courier Prime', 'Courier New', monospace; font-size: var(--fs-caption); color: var(--ink); }
+.tw__sign::placeholder { color: var(--ink-soft); }
+.tw__sign:focus-visible { outline: 2px solid var(--magma); outline-offset: 2px; }
 .tw__btn { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 0; background: var(--ink); color: var(--paper); font-family: var(--ui); font-size: var(--fs-caption); font-weight: 600; cursor: pointer; transition: background-color 0.25s, color 0.25s; }
 .tw__btn:hover { background: var(--magma); color: var(--ink); }
 .tw__btn--quiet { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
@@ -494,5 +497,7 @@ button { font: inherit; color: inherit; }
 @media (max-width: 759px) {
   .tw { top: calc(50% + clamp(64px, 20vw, 120px) / 2 + 24px); }
   .tw__paper { font-size: 18px; }
+  .tw__actions { flex-wrap: wrap; justify-content: center; }
+  .tw__sign { width: 100%; max-width: 280px; }
 }
 @media (prefers-reduced-motion: reduce) { .tw__ch { animation: none; } }

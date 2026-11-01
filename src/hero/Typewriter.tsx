@@ -38,6 +38,7 @@ function add(text: string, ch: string) {
 export function Typewriter({ onWrite }: { onWrite?: () => void }) {
   const [text, setText] = useState('')
   const [printing, setPrinting] = useState(false)
+  const [name, setName] = useState('')
   const box = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLTextAreaElement>(null)
   const prev = useRef('')
@@ -131,6 +132,15 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
       )}
 
       <div className="tw__actions" data-on={text ? '' : undefined}>
+        <input
+          className="tw__sign"
+          value={name}
+          maxLength={28}
+          placeholder="Your name (optional)"
+          aria-label="Sign the card with your name (optional)"
+          autoComplete="name"
+          onChange={(e) => setName(e.target.value)}
+        />
         <button
           type="button"
           className="tw__btn"
@@ -138,7 +148,7 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
           onClick={() => {
             setPrinting(true)
             // Let the label change paint before the card is drawn
-            setTimeout(() => postcard(text).finally(() => setPrinting(false)), 30)
+            setTimeout(() => postcard(text, name).finally(() => setPrinting(false)), 30)
           }}
         >
           {printing ? 'Printing…' : 'Print it'}
