@@ -252,6 +252,13 @@ export class InkField {
     this.sampleMask()
   }
 
+  /** The canvas changed size a little (a phone's address bar, a re-measure):
+   * match the drawing surface to it so the letters keep their proportions,
+   * without reallocating the simulation and losing the ink */
+  fit() {
+    this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1)
+  }
+
   // Points inside the letter, for the ambient drips and the opening pour
   private sampleMask() {
     const mc = this.o.mask

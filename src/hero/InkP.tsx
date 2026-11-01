@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { InkField } from './fluid'
+import { gsap } from '../lib/motion'
 
 // The hero mark: a capital P that holds live ink. The mask is drawn from the
 // display face itself, so the letter is the site's own type, not a model.
@@ -49,10 +50,26 @@ function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layo
   ctx.textBaseline = 'alphabetic'
   const m = ctx.measureText(text)
   const glyphH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent
-  const x = box ? box.x * scale - m.actualBoundingBoxLeft : word || narrow ? (c.width - m.width) / 2 : c.width * 0.95 - m.width
-  const y = box ? box.y * scale + (bh - glyphH) / 2 + m.actualBoundingBoxAscent : word ? c.height * (w < 760 ? 0.13 : 0.12) + m.actualBoundingBoxAscent : layout === 'center' ? (c.height - glyphH) / 2 + m.actualBoundingBoxAscent : narrow ? c.height * 0.1 + m.actualBoundingBoxAscent : (c.height - glyphH) * 0.42 + m.actualBoundingBoxAscent
   ctx.fillStyle = '#fff'
   ctx.filter = layout === 'wordmark' ? `blur(${0.5 * scale}px)` : 'blur(2px)'
+  if (box) {
+    // Typeset once at a fixed size, then scale the drawing: re-typesetting at
+    // every in-between size lets the letter widths snap, which reads as a squeeze
+    const R = 200
+    ctx.font = `800 ${R}px Panchang, "Arial Black", sans-serif`
+    const r = ctx.measureText(text)
+    const gh = r.actualBoundingBoxAscent + r.actualBoundingBoxDescent
+    const k = glyph / gh
+    const ox = box.x * scale - k * r.actualBoundingBoxLeft
+    const oy = box.y * scale + (bh - k * gh) / 2 + k * r.actualBoundingBoxAscent
+    ctx.setTransform(k, 0, 0, k, ox, oy)
+    ctx.fillText(text, 0, 0)
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.filter = 'none'
+    return
+  }
+  const x = word || narrow ? (c.width - m.width) / 2 : c.width * 0.95 - m.width
+  const y = word ? c.height * (w < 760 ? 0.13 : 0.12) + m.actualBoundingBoxAscent : layout === 'center' ? (c.height - glyphH) / 2 + m.actualBoundingBoxAscent : narrow ? c.height * 0.1 + m.actualBoundingBoxAscent : (c.height - glyphH) * 0.42 + m.actualBoundingBoxAscent
   ctx.fillText(text, x, y)
   ctx.filter = 'none'
 }
@@ -103,6 +120,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
         size = [w, h]
         f.resize()
       } else {
+        f.fit()
         f.maskChanged()
       }
     })
@@ -212,7 +230,6 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
 
     // When the word is moved by the page (scroll animations), redraw its shape
     // where it now is, and carry the ink along with it
-    let trackRaf = 0
     let lastBox = box()
     // The word moves with the scroll, and otherwise only during a resize or a
     // CSS transition on its anchor (the lift when someone writes); watch for those
@@ -223,7 +240,6 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     anchorEl?.addEventListener('transitionrun', moving)
     addEventListener('resize', moving)
     const follow = () => {
-      trackRaf = requestAnimationFrame(follow)
       // Off screen, or nothing has moved: skip the layout read entirely
       if (!onScreen) return
       const y = scrollY
@@ -238,7 +254,8 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       f.maskChanged()
       f.scroll(dy)
     }
-    if (track) trackRaf = requestAnimationFrame(follow)
+    // On GSAP's clock, after the scroll animation has placed the word this frame
+    if (track) gsap.ticker.add(follow)
     window.addEventListener('pointermove', move, { passive: true })
     window.addEventListener('pointermove', touched, { passive: true })
     c.addEventListener('pointerdown', down)
@@ -255,7 +272,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       window.clearInterval(tiltTimer)
       window.removeEventListener('deviceorientation', tilt)
       cancelAnimationFrame(ghostRaf)
-      cancelAnimationFrame(trackRaf)
+      gsap.ticker.remove(follow)
       anchorEl?.removeEventListener('transitionrun', moving)
       removeEventListener('resize', moving)
       f.dispose()
