@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 // The card designs load on first print, not with the page
 const designs = ['Bloom', 'Night', 'Proof']
 const print = (text: string, name: string, design: number) => import('./postcard').then((m) => m.postcard(text, name, design))
+const preview = (text: string, name: string) => import('./postcard').then((m) => m.previews(text, name))
 
 // Write in ink: type on the first screen and your words are struck onto the
 // paper under my name, letter by letter, each one a little uneven like real
@@ -37,12 +38,15 @@ function add(text: string, ch: string) {
   return text
 }
 
-export function Typewriter({ onWrite }: { onWrite?: () => void }) {
+export function Typewriter({ onWrite, invite }: { onWrite?: () => void; invite?: boolean }) {
   const [text, setText] = useState('')
   const [printing, setPrinting] = useState(false)
   const [name, setName] = useState('')
   const [design, setDesign] = useState(0)
+  // A small preview of each design with your words on it, redrawn once you pause
+  const [thumbs, setThumbs] = useState<string[]>([])
   const box = useRef<HTMLDivElement>(null)
+  const self = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLTextAreaElement>(null)
   const prev = useRef('')
   const lastPos = useRef<{ x: number; y: number } | null>(null)
@@ -91,12 +95,43 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
     }
   }, [text, onWrite])
 
+  useEffect(() => {
+    if (!text.trim()) return
+    let live = true
+    const t = window.setTimeout(() => preview(text, name).then((p) => live && setThumbs(p)), 450)
+    return () => {
+      live = false
+      window.clearTimeout(t)
+    }
+  }, [text, name])
+
+  // When the words and buttons would run off the bottom of a short screen, the
+  // name (and its ink, which follows it) glides up just enough to make room
+  useLayoutEffect(() => {
+    const tw = self.current
+    const hero = tw?.closest<HTMLElement>('.hero')
+    const mark = hero?.querySelector<HTMLElement>('.hero__mark')
+    if (!tw || !hero || !mark) return
+    const fit = () => {
+      if (!text) return hero.style.setProperty('--lift', '0px')
+      const top = hero.getBoundingClientRect().top
+      const bottom = top + tw.offsetTop + tw.offsetHeight
+      const header = document.querySelector('.header')?.getBoundingClientRect().bottom ?? 70
+      const room = top + mark.offsetTop - header - 16
+      const lift = Math.max(0, Math.min(bottom - (innerHeight - 20), room))
+      hero.style.setProperty('--lift', `${Math.round(lift)}px`)
+    }
+    fit()
+    addEventListener('resize', fit)
+    return () => removeEventListener('resize', fit)
+  }, [text, thumbs])
+
   const lines = text.split('\n')
   // The same numbering as the postcard: one step per letter, one more per line break
   const starts = lines.reduce<number[]>((acc, _l, i) => [...acc, i === 0 ? 0 : acc[i - 1]! + lines[i - 1]!.length + 1], [])
 
   return (
-    <div className="tw" data-filled={text ? '' : undefined}>
+    <div ref={self} className="tw" data-filled={text ? '' : undefined}>
       <div ref={box} className="tw__paper" aria-live="polite" aria-label={text ? `You wrote: ${text}` : undefined}>
         {lines.map((line, li) => (
           <p key={li} className="tw__line">
@@ -116,8 +151,9 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
 
       {touch && (
         <>
-          <button type="button" className="tw__write" onClick={() => field.current?.focus()} data-hidden={text ? '' : undefined}>
-            Write something
+          {/* Not there at first: it fades in after a few seconds as the invitation */}
+          <button type="button" className="tw__write" onClick={() => field.current?.focus()} data-on={invite && !text ? '' : undefined} tabIndex={invite && !text ? 0 : -1}>
+            <span>Write something</span>, or scroll
           </button>
           <textarea
             ref={field}
@@ -138,6 +174,7 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
         <div className="tw__designs" role="radiogroup" aria-label="Card design">
           {designs.map((d, i) => (
             <button key={d} type="button" role="radio" aria-checked={design === i} className="tw__design" onClick={() => setDesign(i)}>
+              <span className="tw__thumb">{thumbs[i] && <img src={thumbs[i]} alt="" />}</span>
               {d}
             </button>
           ))}

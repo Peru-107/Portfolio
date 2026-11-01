@@ -46,8 +46,8 @@ function rgba(hex: string, a: number) {
 // at the given centres and fade out before they reach the words.
 type Pool = { x: number; y: number; rx: number; ry: number }
 function marble(rnd: Rnd, pools: Pool[], palette: [string, string, string], strength = 1) {
-  const w = 640
-  const h = 400
+  const w = res
+  const h = Math.round(res * 0.625)
   const perm = new Uint8Array(512)
   const base = [...Array(256).keys()].sort(() => rnd() - 0.5)
   for (let i = 0; i < 512; i++) perm[i] = base[i & 255]!
@@ -352,14 +352,18 @@ export const designs = [
   { name: 'Proof', draw: proofCard },
 ]
 
-export async function postcard(text: string, name = '', design = 0) {
-  await document.fonts.load('400 64px "Courier Prime"')
+// How finely the ink is grown: full for the download, coarse for the previews
+let res = 640
+
+// The same words and name always make the same card, so a preview matches the download
+function draw(text: string, name: string, design: number, scale: number) {
   const c = document.createElement('canvas')
-  c.width = W
-  c.height = H
+  c.width = Math.round(W * scale)
+  c.height = Math.round(H * scale)
   const ctx = c.getContext('2d')!
+  ctx.scale(scale, scale)
   const now = new Date()
-  const seed = hash(text + now.toISOString().slice(0, 16))
+  const seed = hash(text + '|' + name.trim())
   const meta: Meta = {
     no: String(seed % 10000).padStart(4, '0'),
     date: new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(now),
@@ -367,6 +371,22 @@ export async function postcard(text: string, name = '', design = 0) {
     name: name.trim().slice(0, 28),
   }
   designs[design]!.draw(ctx, seeded(seed), text.split('\n'), meta)
+  return { c, meta }
+}
+
+// Small previews of every design, for the picker
+export async function previews(text: string, name = '') {
+  await document.fonts.load('400 64px "Courier Prime"')
+  res = 200
+  const out = designs.map((_, i) => draw(text, name, i, 0.2).c.toDataURL('image/jpeg', 0.85))
+  res = 640
+  return out
+}
+
+export async function postcard(text: string, name = '', design = 0) {
+  await document.fonts.load('400 64px "Courier Prime"')
+  res = 640
+  const { c, meta } = draw(text, name, design, 1)
 
   await new Promise<void>((done) =>
     c.toBlob((b) => {

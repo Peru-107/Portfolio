@@ -1,4 +1,4 @@
-import * as THREE from 'three'
+import { MaskTexture, Program, Renderer, Target, type Uniforms } from './gl'
 
 // A small stable-fluids solver (advect, curl, vorticity, divergence, pressure,
 // gradient subtract) on half-float render targets. Dye is stored as the
@@ -137,8 +137,7 @@ const DISPLAY = head + /* glsl */ `
   }
 `
 
-type Uniforms = Record<string, THREE.IUniform>
-type Double = { read: THREE.WebGLRenderTarget; write: THREE.WebGLRenderTarget; swap(): void }
+type Double = { read: Target; write: Target; swap(): void }
 
 export type InkOptions = {
   canvas: HTMLCanvasElement
@@ -149,17 +148,14 @@ export type InkOptions = {
 }
 
 export class InkField {
-  private renderer: THREE.WebGLRenderer
-  private scene = new THREE.Scene()
-  private camera = new THREE.Camera()
-  private quad: THREE.Mesh
-  private mats: Record<string, THREE.ShaderMaterial> = {}
+  private renderer: Renderer
+  private mats: Record<string, Program> = {}
   private vel!: Double
   private dye!: Double
   private pressure!: Double
-  private div!: THREE.WebGLRenderTarget
-  private curl!: THREE.WebGLRenderTarget
-  private maskTex!: THREE.CanvasTexture
+  private div!: Target
+  private curl!: Target
+  private maskTex!: MaskTexture
   private simW = 0
   private simH = 0
   private dyeW = 0
@@ -195,33 +191,29 @@ export class InkField {
   private sampled = 0
 
   constructor(private o: InkOptions) {
-    this.renderer = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, alpha: false, powerPreference: 'high-performance' })
+    this.renderer = new Renderer(o.canvas)
     this.renderer.setPixelRatio(this.dpr)
-    this.renderer.autoClear = false
-    this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2))
-    this.quad.frustumCulled = false
-    this.scene.add(this.quad)
     this.makeMaskTexture()
 
     const m = (name: string, frag: string, uniforms: Uniforms) => {
-      this.mats[name] = new THREE.ShaderMaterial({ vertexShader: vert, fragmentShader: frag, uniforms: { texel: { value: new THREE.Vector2() }, ...uniforms }, depthTest: false, depthWrite: false })
+      this.mats[name] = this.renderer.program(vert, frag, { texel: { value: [0, 0] }, ...uniforms })
     }
-    const tex = () => ({ value: null as THREE.Texture | null })
-    m('splat', SPLAT, { uTarget: tex(), aspect: { value: 1 }, color: { value: new THREE.Vector3() }, point: { value: new THREE.Vector2() }, radius: { value: 0.002 } })
-    m('advect', ADVECT, { uVelocity: tex(), uSource: tex(), velTexel: { value: new THREE.Vector2() }, dt: { value: 0.016 }, dissipation: { value: 1 }, uMask: { value: this.maskTex }, holdInside: { value: 1 }, shift: { value: new THREE.Vector2() } })
+    const tex = () => ({ value: null })
+    m('splat', SPLAT, { uTarget: tex(), aspect: { value: 1 }, color: { value: [0, 0, 0] }, point: { value: [0, 0] }, radius: { value: 0.002 } })
+    m('advect', ADVECT, { uVelocity: tex(), uSource: tex(), velTexel: { value: [0, 0] }, dt: { value: 0.016 }, dissipation: { value: 1 }, uMask: { value: this.maskTex }, holdInside: { value: 1 }, shift: { value: [0, 0] } })
     m('divergence', DIVERGENCE, { uVelocity: tex() })
     m('curl', CURL, { uVelocity: tex() })
     m('vorticity', VORTICITY, { uVelocity: tex(), uCurl: tex(), curl: { value: 16 }, dt: { value: 0.016 } })
     m('pressure', PRESSURE, { uPressure: tex(), uDivergence: tex() })
     m('gradient', GRADIENT, { uPressure: tex(), uVelocity: tex() })
     m('fade', FADE, { uTexture: tex(), value: { value: 0.8 } })
-    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, paper: { value: new THREE.Vector3(...o.paper) }, dyeTexel: { value: new THREE.Vector2() }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 } })
+    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 } })
 
     this.resize()
   }
 
   private target(w: number, h: number) {
-    return new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, format: THREE.RGBAFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false, stencilBuffer: false, wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping })
+    return this.renderer.target(w, h)
   }
 
   private double(w: number, h: number): Double {
@@ -233,9 +225,7 @@ export class InkField {
   // in place, so it is rebuilt and handed to the shaders that read it
   private makeMaskTexture() {
     this.maskTex?.dispose()
-    this.maskTex = new THREE.CanvasTexture(this.o.mask)
-    this.maskTex.minFilter = THREE.LinearFilter
-    this.maskTex.magFilter = THREE.LinearFilter
+    this.maskTex = this.renderer.mask(this.o.mask)
     for (const k of ['advect', 'display']) if (this.mats[k]) this.mats[k]!.uniforms.uMask!.value = this.maskTex
   }
 
@@ -243,7 +233,7 @@ export class InkField {
     const c = this.o.canvas
     const w = c.clientWidth || 1
     const h = c.clientHeight || 1
-    this.renderer.setSize(w, h, false)
+    this.renderer.setSize(w, h)
     const aspect = w / h
     const res = (base: number) => (aspect >= 1 ? [Math.round(base * aspect), base] : [base, Math.round(base / aspect)])
     ;[this.simW, this.simH] = res(this.light ? 128 : 160)
@@ -274,18 +264,11 @@ export class InkField {
     this.maskPoints = pts
   }
 
-  private pass(name: string, out: THREE.WebGLRenderTarget | null, set: Record<string, unknown>, texel: [number, number]) {
-    const mat = this.mats[name]!
-    ;(mat.uniforms.texel!.value as THREE.Vector2).set(1 / texel[0], 1 / texel[1])
-    for (const k in set) {
-      const u = mat.uniforms[k]!
-      const v = set[k]
-      if (u.value && typeof (u.value as { set?: unknown }).set === 'function' && Array.isArray(v)) (u.value as THREE.Vector3).set(...(v as [number, number, number]))
-      else u.value = v
-    }
-    this.quad.material = mat
-    this.renderer.setRenderTarget(out)
-    this.renderer.render(this.scene, this.camera)
+  private pass(name: string, out: Target | null, set: Uniforms[string]['value'] extends infer V ? Record<string, V> : never, texel: [number, number]) {
+    const prog = this.mats[name]!
+    prog.uniforms.texel!.value = [1 / texel[0], 1 / texel[1]]
+    for (const k in set) prog.uniforms[k]!.value = set[k]!
+    this.renderer.render(prog, out)
   }
 
   private splat(x: number, y: number, dx: number, dy: number, color: [number, number, number], r = 0.0022) {
@@ -436,7 +419,7 @@ export class InkField {
     if (this.dpr > 1) {
       this.dpr = Math.max(1, this.dpr - 0.5)
       this.renderer.setPixelRatio(this.dpr)
-      this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1, false)
+      this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1)
     } else if (this.iterations > 8) this.iterations -= 4
   }
 

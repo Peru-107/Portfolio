@@ -13,6 +13,8 @@ export function Hero({ ready }: { ready: boolean }) {
   const mark = useRef<HTMLDivElement>(null)
   // A one-line hint, shown only if nobody has found the trick after a few seconds
   const [hint, setHint] = useState<string | null>(null)
+  // On phones the invitation to write is the typewriter's own button
+  const [invite, setInvite] = useState(false)
 
   useEffect(() => {
     if (!ready) return
@@ -24,11 +26,18 @@ export function Hero({ ready }: { ready: boolean }) {
     }
     window.addEventListener('ink:played', onPlay)
     // Gone as soon as the page moves on
-    const onScroll = () => scrollY > 40 && setHint(null)
+    const onScroll = () => {
+      if (scrollY <= 40) return
+      setHint(null)
+      setInvite(false)
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
+    // Nothing but the name at first; after ten seconds, a quiet invitation fades in
     const t = window.setTimeout(() => {
-      if (!found && scrollY < 40) setHint(touch ? 'Tilt your phone.' : 'Type something. It stays.')
-    }, 4500)
+      if (scrollY >= 40) return
+      if (touch) setInvite(true)
+      else if (!found) setHint('Type something, or scroll.')
+    }, 10000)
     return () => {
       window.clearTimeout(t)
       window.removeEventListener('ink:played', onPlay)
@@ -71,11 +80,12 @@ export function Hero({ ready }: { ready: boolean }) {
         <div ref={mark} className="hero__mark" aria-hidden="true" />
       </div>
       <h1 className="sr-only">{site.fullName}</h1>
-      <Typewriter onWrite={() => setHint(null)} />
+      <Typewriter onWrite={() => setHint(null)} invite={invite} />
       <p className="hero__hint" data-on={hint ? '' : undefined} aria-hidden="true">{hint}</p>
       <div className="hero__pitch">
         <div className="pitch__copy">
-          <p className="pitch__title" aria-label={site.pitch}>
+          <p className="pitch__title">
+            <span className="sr-only">{site.pitch}</span>
             {lines.map((l) => (
               <span key={l} className="pitch__line" aria-hidden="true"><span>{l}</span></span>
             ))}

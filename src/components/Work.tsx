@@ -6,28 +6,29 @@ import { Media } from './Media'
 
 // The work as one object that changes with the scroll: the projects start
 // stacked in depth, deal out into a row, then the row slides past. Each
-// project appears once. Phones and reduced motion get a plain vertical list.
+// project appears once, on phones as on desktop. Reduced motion gets a plain list.
 export function Work() {
   const root = useRef<HTMLElement>(null)
   const row = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const mm = gsap.matchMedia()
-    mm.add('(min-width: 960px) and (prefers-reduced-motion: no-preference)', () => {
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
       const r = row.current!
       const cards = gsap.utils.toArray<HTMLElement>('.w2__card', r)
       const caps = gsap.utils.toArray<HTMLElement>('.w2__cap', r)
       const cardW = () => cards[0]!.offsetWidth
-      const gap = () => innerWidth * 0.04
-      const start = () => innerWidth * 0.06
+      const wide = () => innerWidth >= 960
+      const gap = () => innerWidth * (wide() ? 0.04 : 0.05)
+      const start = () => innerWidth * (wide() ? 0.06 : 0.09)
       const slot = (i: number) => start() + i * (cardW() + gap())
       const travel = () => Math.max(0, slot(cards.length - 1) + cardW() + start() - innerWidth)
       const length = () => innerHeight * 1.2 + travel()
 
-      // Stacked: on the right, each card further back and turned away
+      // Stacked: on the right (centred on narrow screens), each card further back and turned away
       gsap.set(cards, {
-        x: (i) => innerWidth * 0.46 + i * 46,
-        y: (i) => i * -16,
+        x: (i) => (wide() ? innerWidth * 0.46 + i * 46 : (innerWidth - cardW()) / 2 + i * 14),
+        y: (i) => i * (wide() ? -16 : -10),
         z: (i) => i * -90,
         rotationY: -26,
         rotationX: 10,
@@ -62,6 +63,8 @@ export function Work() {
         {projects.map((p) => (
           <a key={p.slug} className="w2__card" {...linkProps(`/work/${p.slug}`)} data-cursor="Open" aria-label={`${p.title}, ${p.kind}. Open case study`}>
             <div className="w2__media"><Media m={p.cover} /></div>
+            {/* Phones held upright get tall cards; their images load only there */}
+            {p.portrait && <div className="w2__media w2__media--portrait"><Media m={p.portrait} /></div>}
             <div className="w2__cap">
               <p className="w2__kind">{p.kind}, {p.year}</p>
               <p className="w2__name">{p.title}</p>

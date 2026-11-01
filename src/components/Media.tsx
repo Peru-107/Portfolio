@@ -1,19 +1,25 @@
 import { useEffect, useRef } from 'react'
 import type { Media as M } from '../content'
 
-// Images that also exist at 800px wide (name-800.webp), with their full width.
-// Phones pick the small file; wide screens keep the original.
-const WIDE: Record<string, number> = {
-  'by-1': 1400, 'by-2': 1400, 'by-3': 1400, 'cube-desk': 1400, 'cube-poster': 1400,
-  'folio-card': 1200, 'nextup-card': 1200, 'stack-by': 1600, 'stack-cube': 1600,
-  'stack-folio': 1600, 'stack-nextup': 1600, 'stack-tv': 1600,
-  'tv-apps': 1280, 'tv-focus': 1280, 'tv-home': 1280, 'tv-panel': 1280,
+// Each image's full width, and the smaller copies that exist beside it
+// (name-400.webp and so on). The browser picks the smallest that stays sharp.
+const SIZES: Record<string, [number, number[]]> = {
+  'by-1': [1400, [400, 800]], 'by-2': [1400, [400, 800]], 'by-3': [1400, [400, 800]],
+  'cube-desk': [1400, [800]], 'cube-poster': [1400, [800]], 'cube-phone': [780, [400, 600]],
+  'folio-card': [1200, [800]], 'folio-today': [780, [400, 600]], 'folio-room': [780, [400, 600]],
+  'folio-shelf': [780, [400, 600]], 'folio-notes': [780, [400, 600]],
+  'nextup-card': [1200, [800]], 'nextup-poster': [720, [400, 600]],
+  'stack-by': [1600, [800]], 'stack-cube': [1600, [800]], 'stack-folio': [1600, [800]],
+  'stack-nextup': [1600, [800]], 'stack-tv': [1600, [800]],
+  'tv-apps': [1280, [800]], 'tv-focus': [1280, [800]], 'tv-home': [1280, [800]], 'tv-panel': [1280, [800]],
 }
 function responsive(src: string, sizes = '(max-width: 759px) 92vw, 60vw') {
   const name = src.match(/\/media\/([\w-]+)\.webp$/)?.[1]
-  const w = name ? WIDE[name] : undefined
-  if (!w) return { src }
-  return { src, srcSet: `${src.replace(/\.webp$/, '-800.webp')} 800w, ${src} ${w}w`, sizes }
+  const known = name ? SIZES[name] : undefined
+  if (!known) return { src }
+  const [full, smaller] = known
+  const set = [...smaller.map((w) => `${src.replace(/\.webp$/, `-${w}.webp`)} ${w}w`), `${src} ${full}w`]
+  return { src, srcSet: set.join(', '), sizes }
 }
 
 // Video plays only while on screen, so six projects never decode at once
@@ -41,7 +47,7 @@ export function Media({ m, priority }: { m: M; priority?: boolean }) {
   if (m.type === 'row') {
     return (
       <div className="media media--row" data-shape={m.shape} style={{ background: m.bg }} role="img" aria-label={m.alt}>
-        {m.srcs.map((s) => <img key={s} {...responsive(s, '(max-width: 759px) 46vw, 24vw')} alt="" loading={load} />)}
+        {m.srcs.map((s) => <img key={s} {...responsive(s, m.shape === 'screens' ? '(max-width: 759px) 60vw, 30vw' : '(max-width: 759px) 30vw, 14vw')} alt="" loading={load} />)}
       </div>
     )
   }

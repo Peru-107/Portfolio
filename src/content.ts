@@ -92,7 +92,7 @@ export type Media =
   | { type: 'video'; src: string; poster: string; alt: string; frame?: 'browser' }
   | { type: 'image'; src: string; alt: string; frame?: 'browser' | 'phone' | 'tv' }
   | { type: 'stack'; srcs: string[]; alt: string }
-  | { type: 'row'; srcs: string[]; alt: string; bg: string; shape: 'phone' | 'slide' }
+  | { type: 'row'; srcs: string[]; alt: string; bg: string; shape: 'phone' | 'slide' | 'screens' }
 
 export type Project = {
   slug: string
@@ -108,6 +108,8 @@ export type Project = {
   link?: { label: string; href: string }
   tone: 'clay' | 'ink' | 'pine' | 'night' | 'paper' | 'ember'
   cover: Media
+  /** A tall version of the cover for phones held upright */
+  portrait?: Media
   gallery: Media[]
 }
 
@@ -132,6 +134,7 @@ export const projects: Project[] = [
     link: { label: 'Open CUBE', href: 'https://cu-be.vercel.app' },
     tone: 'clay',
     cover: { type: 'video', src: '/media/cube.mp4', poster: '/media/cube-poster.webp', alt: 'CUBE launch film: grades, study notebook, reminders and nearby chat' },
+    portrait: { type: 'row', shape: 'phone', bg: '#ece6dc', srcs: ['/media/cube-phone.webp'], alt: 'CUBE on a phone' },
     gallery: [
       { type: 'image', src: '/media/cube-desk.webp', alt: 'CUBE landing page', frame: 'browser' },
       { type: 'image', src: '/media/cube-phone.webp', alt: 'CUBE on a phone', frame: 'phone' },
@@ -156,6 +159,7 @@ export const projects: Project[] = [
     result: 'Extension packaged for the Chrome Web Store; tests run on both SQLite and Postgres.',
     tone: 'ember',
     cover: { type: 'image', src: '/media/nextup-card.webp', alt: 'Nextup: turn what you save into what you do' },
+    portrait: { type: 'image', src: '/media/nextup-poster.webp', alt: 'Nextup: get the next step' },
     gallery: [{ type: 'video', src: '/media/nextup.mp4', poster: '/media/nextup-poster.webp', alt: 'Nextup reel: you saved it, then forgot it' }],
   },
   {
@@ -177,6 +181,7 @@ export const projects: Project[] = [
     result: 'About 400 KB first load with no layout shift; passed a 64-screenshot review on phone and desktop, day and night.',
     tone: 'pine',
     cover: { type: 'row', shape: 'phone', bg: '#e6e7df', srcs: ['/media/folio-today.webp', '/media/folio-room.webp', '/media/folio-shelf.webp'], alt: 'Folio on a phone: Today page, focus room with Sproutling, and the shelf' },
+    portrait: { type: 'row', shape: 'phone', bg: '#e6e7df', srcs: ['/media/folio-today.webp', '/media/folio-room.webp'], alt: 'Folio on a phone: Today page and the focus room' },
     gallery: [{ type: 'image', src: '/media/folio-card.webp', alt: 'Folio: read a little every day', frame: 'browser' }],
   },
   {
@@ -198,6 +203,7 @@ export const projects: Project[] = [
     result: 'Installed and running every day on my own TV.',
     tone: 'night',
     cover: { type: 'image', src: '/media/tv-home.webp', alt: 'Glass Home on the TV: mountain wallpaper, clock and a frosted app dock' },
+    portrait: { type: 'row', shape: 'screens', bg: '#101317', srcs: ['/media/tv-home.webp', '/media/tv-apps.webp'], alt: 'Glass Home on the TV: the home screen and the app drawer' },
     gallery: [
       { type: 'image', src: '/media/tv-panel.webp', alt: 'Wallpaper panel with change timings', frame: 'tv' },
       { type: 'image', src: '/media/tv-apps.webp', alt: 'All apps sheet over a waterfall wallpaper', frame: 'tv' },
@@ -222,6 +228,7 @@ export const projects: Project[] = [
     link: { label: 'See @byperraz', href: 'https://instagram.com/byperraz' },
     tone: 'paper',
     cover: { type: 'row', shape: 'slide', bg: '#141518', srcs: ['/media/by-1.webp', '/media/by-2.webp', '/media/by-3.webp'], alt: 'Three byperraz carousel slides about UI colour palettes' },
+    portrait: { type: 'image', src: '/media/by-1.webp', alt: 'A byperraz carousel slide about UI colour palettes' },
     gallery: [],
   },
 ]

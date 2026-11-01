@@ -6,7 +6,7 @@ import { site } from '../content'
 // drawn as an outline (design), filled in (build), then inked in magma
 // (worth). It sits exactly where the hero's ink wordmark will appear, so the
 // fade into the page has no jump. It runs once per visit, and waits only as
-// long as the fonts and the first images actually take.
+// long as the fonts take; the project images load quietly once it is done.
 
 const STEPS = ['Design', 'Build', 'Ship']
 
@@ -21,7 +21,12 @@ const SEEN = (() => {
     return false
   }
 })()
-const PRELOAD = ['/media/cube-poster.webp', '/media/nextup-card.webp', '/media/folio-room.webp', '/media/tv-home.webp', '/media/by-1.webp']
+// Warmed after the loader, in the size this screen will actually use
+const narrow = () => innerWidth < 760
+const WARM = () =>
+  narrow()
+    ? ['/media/cube-phone-400.webp', '/media/nextup-poster-400.webp', '/media/folio-today-400.webp', '/media/tv-home-800.webp', '/media/by-1-400.webp']
+    : ['/media/cube-poster-800.webp', '/media/nextup-card-800.webp', '/media/folio-room-400.webp', '/media/tv-home-800.webp', '/media/by-1-400.webp']
 
 function loadImage(src: string) {
   return new Promise<void>((resolve) => {
@@ -51,6 +56,9 @@ export function Preloader({ onDone }: { onDone: () => void }) {
       if (finished) return
       finished = true
       onDone()
+      const warm = () => WARM().forEach(loadImage)
+      if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 3000 })
+      else setTimeout(warm, 1500)
     }
 
     // Place the word over the hero's wordmark box, sized to fill it
@@ -77,7 +85,7 @@ export function Preloader({ onDone }: { onDone: () => void }) {
         .fromTo(step.current, { yPercent: 100, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.3, ease: 'power3.out' })
     }
 
-    const loaded = Promise.all([document.fonts.load('800 100px Panchang').then(() => document.fonts.ready), ...PRELOAD.map(loadImage)])
+    const loaded = document.fonts.load('800 100px Panchang').then(() => document.fonts.ready)
     const progress = { v: 0 }
     const showCount = () => {
       count.current!.textContent = String(Math.round(progress.v)).padStart(3, '0')

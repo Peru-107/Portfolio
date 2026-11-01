@@ -214,10 +214,21 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     // where it now is, and carry the ink along with it
     let trackRaf = 0
     let lastBox = box()
+    // The word moves with the scroll, and otherwise only during a resize or a
+    // CSS transition on its anchor (the lift when someone writes); watch for those
+    let lastY = -1
+    let moveUntil = performance.now() + 2500
+    const moving = () => (moveUntil = performance.now() + 1000)
+    const anchorEl = anchor?.current
+    anchorEl?.addEventListener('transitionrun', moving)
+    addEventListener('resize', moving)
     const follow = () => {
       trackRaf = requestAnimationFrame(follow)
-      // Off screen, nothing to follow: skip the layout read entirely
+      // Off screen, or nothing has moved: skip the layout read entirely
       if (!onScreen) return
+      const y = scrollY
+      if (y === lastY && performance.now() > moveUntil) return
+      lastY = y
       const b = box()
       if (!b || !lastBox) return
       if (Math.abs(b.y - lastBox.y) + Math.abs(b.h - lastBox.h) < 0.5) return
@@ -245,6 +256,8 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       window.removeEventListener('deviceorientation', tilt)
       cancelAnimationFrame(ghostRaf)
       cancelAnimationFrame(trackRaf)
+      anchorEl?.removeEventListener('transitionrun', moving)
+      removeEventListener('resize', moving)
       f.dispose()
       field.current = null
     }
