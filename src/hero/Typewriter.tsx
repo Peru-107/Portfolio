@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { site } from '../content'
+import { postcard } from './postcard'
 
 // Write in ink: type on the first screen and your words are struck onto the
 // paper under my name, letter by letter, each one a little uneven like real
 // type. Backspace lifts a letter off in a puff, Enter starts a new line.
-// "Print it" saves a postcard of your words with the live ink behind them.
+// "Print it" saves your words as a printed card (see postcard.ts).
 
 const MAX_LINES = 3
 const MAX_PER_LINE = 34
@@ -35,76 +35,9 @@ function add(text: string, ch: string) {
   return text
 }
 
-async function postcard(text: string) {
-  await document.fonts.load('400 64px "Courier Prime"')
-  await document.fonts.load('800 40px Panchang')
-  const W = 1600
-  const H = 1000
-  const c = document.createElement('canvas')
-  c.width = W
-  c.height = H
-  const ctx = c.getContext('2d')!
-  ctx.fillStyle = '#e9ecef'
-  ctx.fillRect(0, 0, W, H)
-  // The live ink, as it is right now, softened behind the words
-  const ink = document.querySelector<HTMLCanvasElement>('.hero .ink-canvas')
-  if (ink) {
-    const s = Math.max(W / ink.width, H / ink.height)
-    const w = ink.width * s
-    const h = ink.height * s
-    ctx.globalAlpha = 0.55
-    ctx.drawImage(ink, (W - w) / 2, (H - h) / 2, w, h)
-    ctx.globalAlpha = 1
-    ctx.fillStyle = 'rgba(233, 236, 239, 0.35)'
-    ctx.fillRect(0, 0, W, H)
-  }
-  // The words, struck in ink with the same small unevenness as on the page
-  const lines = text.split('\n')
-  const size = 64
-  ctx.font = `400 ${size}px "Courier Prime", monospace`
-  const lh = size * 1.35
-  // Under the name, as on the page
-  const top = H * 0.72 - ((lines.length - 1) * lh) / 2
-  let i = 0
-  lines.forEach((line, li) => {
-    const lw = ctx.measureText(line).width
-    let x = (W - lw) / 2
-    for (const ch of line) {
-      const j = jitter(i++)
-      ctx.save()
-      ctx.translate(x, top + li * lh + j.y)
-      ctx.rotate((j.rot * Math.PI) / 180)
-      ctx.fillStyle = `rgba(33, 37, 41, ${j.ink})`
-      ctx.fillText(ch, 0, 0)
-      ctx.restore()
-      x += ctx.measureText(ch).width
-    }
-    i++
-  })
-  // Signed and dated
-  ctx.fillStyle = '#212529'
-  ctx.font = '800 30px Panchang, sans-serif'
-  ctx.fillText(site.fullName, 64, H - 64)
-  ctx.font = '400 24px "Courier Prime", monospace'
-  ctx.fillStyle = '#495057'
-  const date = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
-  const right = `${date}    ${location.host}`
-  ctx.fillText(right, W - 64 - ctx.measureText(right).width, H - 66)
-  ctx.fillStyle = '#ff6a1a'
-  ctx.fillRect(64, H - 52, 40, 4)
-
-  c.toBlob((b) => {
-    if (!b) return
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(b)
-    a.download = 'written-in-ink.png'
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000)
-  }, 'image/png')
-}
-
 export function Typewriter({ onWrite }: { onWrite?: () => void }) {
   const [text, setText] = useState('')
+  const [printing, setPrinting] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLTextAreaElement>(null)
   const prev = useRef('')
@@ -198,7 +131,18 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
       )}
 
       <div className="tw__actions" data-on={text ? '' : undefined}>
-        <button type="button" className="tw__btn" onClick={() => postcard(text)}>Print it</button>
+        <button
+          type="button"
+          className="tw__btn"
+          disabled={printing}
+          onClick={() => {
+            setPrinting(true)
+            // Let the label change paint before the card is drawn
+            setTimeout(() => postcard(text).finally(() => setPrinting(false)), 30)
+          }}
+        >
+          {printing ? 'Printing…' : 'Print it'}
+        </button>
         <button type="button" className="tw__btn tw__btn--quiet" onClick={() => setText('')}>Clear</button>
       </div>
     </div>
