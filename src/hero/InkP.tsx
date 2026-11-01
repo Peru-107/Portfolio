@@ -56,6 +56,8 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor }: { pl
   const canvas = useRef<HTMLCanvasElement>(null)
   const field = useRef<InkField | null>(null)
   const fallback = useRef<HTMLDivElement>(null)
+  // Set once the page asks the ink to play; the visibility check reads it
+  const wanted = useRef(false)
 
   useEffect(() => {
     const c = canvas.current!
@@ -91,7 +93,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor }: { pl
     if (anchor?.current) ro.observe(anchor.current)
 
     // Only simulate while the hero is on screen
-    const io = new IntersectionObserver(([e]) => (e!.isIntersecting && f.reveal > 0 ? f.start() : f.stop()), { threshold: 0 })
+    const io = new IntersectionObserver(([e]) => (e!.isIntersecting && wanted.current ? f.start() : f.stop()), { threshold: 0 })
     io.observe(c)
 
     let stirred = false
@@ -127,6 +129,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor }: { pl
   useEffect(() => {
     const f = field.current
     if (!play || !f) return
+    wanted.current = true
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduced) {
       f.start()

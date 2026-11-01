@@ -2,21 +2,26 @@ import { useEffect, useRef } from 'react'
 import { gsap, reduced } from '../lib/motion'
 import { site } from '../content'
 
-// The name fills with ink from the bottom as the page loads, while status
-// lines from my own projects roll past. It waits for the fonts and the hero
-// images, then lifts away like a sheet of paper.
+// The loading screen tells the headline in under two seconds: the name is
+// drawn as an outline (design), filled in (build), then inked in magma
+// (worth). It sits exactly where the hero's ink wordmark will appear, so the
+// fade into the page has no jump. It runs once per visit, and waits only as
+// long as the fonts and the first images actually take.
 
-const LINES = [
-  'Mixing the ink',
-  'Waking up Sproutling',
-  'Tuning the TV remote',
-  'Scanning your timetable',
-  'Reading the markets',
-  'Asking the GPU nicely',
-  'Almost there',
-]
+const STEPS = ['Design', 'Build', 'Ship']
 
-const PRELOAD = ['/media/cube-poster.webp', '/media/folio-card.webp', '/media/tv-home.webp', '/media/nextup-card.webp', '/media/by-1.webp']
+// Read once per page load, outside React, so effects that run twice in
+// development don't mark the visit as seen before the loader has played
+const SEEN = (() => {
+  try {
+    const v = sessionStorage.getItem('pre-seen') === '1'
+    sessionStorage.setItem('pre-seen', '1')
+    return v
+  } catch {
+    return false
+  }
+})()
+const PRELOAD = ['/media/cube-poster.webp', '/media/nextup-card.webp', '/media/folio-room.webp', '/media/tv-home.webp', '/media/by-1.webp']
 
 function loadImage(src: string) {
   return new Promise<void>((resolve) => {
@@ -28,24 +33,19 @@ function loadImage(src: string) {
 
 export function Preloader({ onDone }: { onDone: () => void }) {
   const root = useRef<HTMLDivElement>(null)
+  const word = useRef<HTMLDivElement>(null)
+  const step = useRef<HTMLSpanElement>(null)
   const num = useRef<HTMLSpanElement>(null)
-  const fill = useRef<HTMLSpanElement>(null)
-  const line = useRef<HTMLSpanElement>(null)
+  const count = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const el = root.current!
-    // A recruiter gives the homepage about ten seconds: the full show runs once
-    // per visit, and only for as long as loading actually takes
-    let seen = false
-    try {
-      seen = sessionStorage.getItem('pre-seen') === '1'
-      sessionStorage.setItem('pre-seen', '1')
-    } catch {}
-    if (reduced() || seen) {
+    if (reduced() || SEEN) {
       el.style.display = 'none'
       onDone()
       return
     }
+
     let finished = false
     const finish = () => {
       if (finished) return
@@ -53,77 +53,88 @@ export function Preloader({ onDone }: { onDone: () => void }) {
       onDone()
     }
 
-    // Real progress: fonts and the hero's images. The counter eases toward it
-    // and never runs ahead of what has actually loaded.
-    const jobs = [document.fonts.ready.then(() => undefined), ...PRELOAD.map(loadImage)]
-    let done = 0
-    const target = { v: 0 }
-    jobs.forEach((j) => j.then(() => (target.v = (++done / jobs.length) * 100)))
-
-    const shown = { v: 0 }
-    let li = 0
-    let lastLine = 0
-    const tick = () => {
-      // About three-quarters of a second for the whole fill on a fast line
-      shown.v = Math.min(target.v, shown.v + 2.4)
-      num.current!.textContent = String(Math.round(shown.v)).padStart(3, '0')
-      fill.current!.style.clipPath = `inset(${100 - shown.v}% 0 0 0)`
-      const step = Math.min(LINES.length - 1, Math.floor((shown.v / 100) * LINES.length))
-      if (step !== li && performance.now() - lastLine > 160) {
-        li = step
-        lastLine = performance.now()
-        const l = line.current!
-        gsap.timeline()
-          .to(l, { yPercent: -100, autoAlpha: 0, duration: 0.2, ease: 'power2.in' })
-          .add(() => { l.textContent = LINES[li]! })
-          .fromTo(l, { yPercent: 100, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.3, ease: 'power3.out' })
-      }
-      if (shown.v >= 100) {
-        gsap.ticker.remove(tick)
-        exit()
-      }
+    // Place the word over the hero's wordmark box, sized to fill it
+    const place = () => {
+      const w = word.current!
+      const mark = document.querySelector('.hero__mark')?.getBoundingClientRect()
+      const box = mark && mark.width > 0 ? mark : { left: innerWidth * 0.08, top: innerHeight * 0.38, width: innerWidth * 0.84, height: innerHeight * 0.24 }
+      const ctx = document.createElement('canvas').getContext('2d')!
+      ctx.font = '800 100px Panchang'
+      const m = ctx.measureText(site.name)
+      const glyphH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent
+      const size = Math.min(box.height / (glyphH / 100), box.width / (m.width / 100))
+      // With line-height 1 the capitals sit close to the middle of the line box
+      Object.assign(w.style, { left: `${box.left}px`, top: `${box.top + box.height / 2 - size / 2}px`, width: `${box.width}px`, fontSize: `${size}px` })
     }
 
-    const exit = () => {
-      gsap
-        .timeline({ onComplete: () => { el.style.display = 'none' } })
-        .to('.pre__drop', { scale: 18, duration: 0.5, ease: 'power3.in' })
-        .to('.pre__meta', { autoAlpha: 0, duration: 0.25 }, '<')
-        .to(el, { yPercent: -100, duration: 0.75, ease: 'expo.inOut' }, '-=0.2')
-        .add(finish, '-=0.55')
+    const setStep = (i: number) => {
+      gsap.timeline()
+        .to(step.current, { yPercent: -100, autoAlpha: 0, duration: 0.18, ease: 'power2.in' })
+        .add(() => {
+          step.current!.textContent = STEPS[i]!
+          num.current!.textContent = `0${i + 1}`
+        })
+        .fromTo(step.current, { yPercent: 100, autoAlpha: 0 }, { yPercent: 0, autoAlpha: 1, duration: 0.3, ease: 'power3.out' })
     }
 
-    gsap.from('.pre__word', { yPercent: 40, autoAlpha: 0, duration: 0.9, ease: 'power4.out' })
-    gsap.ticker.add(tick)
+    const loaded = Promise.all([document.fonts.load('800 100px Panchang').then(() => document.fonts.ready), ...PRELOAD.map(loadImage)])
+    const progress = { v: 0 }
+    const showCount = () => {
+      count.current!.textContent = String(Math.round(progress.v)).padStart(3, '0')
+    }
 
-    // Never hold a visitor behind the curtain: if anything stalls, open anyway
+    let tl: gsap.core.Timeline | null = null
+    document.fonts.load('800 100px Panchang').then(() => {
+      place()
+      tl = gsap.timeline({ defaults: { ease: 'power2.inOut' } })
+      tl.set(word.current, { autoAlpha: 1 })
+        // 01 Design: the outline is drawn left to right
+        .fromTo('.pre__outline', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.7 })
+        .to(progress, { v: 40, duration: 0.7, onUpdate: showCount }, '<')
+        // 02 Build: it fills in solid, bottom to top
+        .add(() => setStep(1))
+        .fromTo('.pre__solid', { clipPath: 'inset(100% 0 0 0)' }, { clipPath: 'inset(0% 0 0 0)', duration: 0.55 })
+        .to(progress, { v: 75, duration: 0.55, onUpdate: showCount }, '<')
+        // 03 Ship: magma ink sweeps across, once everything has loaded
+        .addPause('+=0', () => {
+          loaded.then(() => tl?.resume())
+        })
+        .add(() => setStep(2))
+        .fromTo('.pre__ink', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power3.inOut' })
+        .to(progress, { v: 100, duration: 0.6, onUpdate: showCount }, '<')
+        // Hand over: the page's live ink starts as this fades away
+        .add(finish, '+=0.1')
+        .to('.pre__meta', { autoAlpha: 0, duration: 0.3 }, '<')
+        .to(el, { autoAlpha: 0, duration: 0.8, ease: 'power2.out' }, '<0.15')
+        .set(el, { display: 'none' })
+    })
+
+    // Never hold a visitor behind the curtain
     const bail = setTimeout(() => {
-      target.v = 100
-    }, 6000)
-    const hard = setTimeout(() => {
-      if (getComputedStyle(el).display !== 'none') {
-        el.style.display = 'none'
-        finish()
-      }
-    }, 9000)
+      if (finished) return
+      tl?.kill()
+      gsap.to(el, { autoAlpha: 0, duration: 0.4, onComplete: () => { el.style.display = 'none' } })
+      finish()
+    }, 7000)
+    addEventListener('resize', place)
     return () => {
-      gsap.ticker.remove(tick)
+      tl?.kill()
       clearTimeout(bail)
-      clearTimeout(hard)
+      removeEventListener('resize', place)
     }
   }, [onDone])
 
   return (
     <div ref={root} className="pre" aria-hidden="true">
-      <div className="pre__word">
-        <span className="pre__ghost">{site.name}</span>
-        <span ref={fill} className="pre__fill">{site.name}</span>
+      <div ref={word} className="pre__word">
+        <span className="pre__outline">{site.name}</span>
+        <span className="pre__solid">{site.name}</span>
+        <span className="pre__ink">{site.name}</span>
       </div>
       <div className="pre__meta">
-        <span className="pre__status"><span ref={line}>{LINES[0]}</span>…</span>
-        <span className="pre__count"><span ref={num}>000</span></span>
+        <span className="pre__step"><span ref={num} className="pre__num">01</span><span className="pre__mask"><span ref={step}>{STEPS[0]}</span></span></span>
+        <span ref={count} className="pre__count">000</span>
       </div>
-      <span className="pre__drop" />
     </div>
   )
 }
