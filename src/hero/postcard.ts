@@ -346,11 +346,13 @@ function proofCard(ctx: Ctx, rnd: Rnd, lines: string[], meta: Meta) {
   credit(ctx, meta, C.ink, C.soft, C.magma)
 }
 
-const designs = [bloomCard, nightCard, proofCard]
-let next = Math.floor(Math.random() * designs.length)
+export const designs = [
+  { name: 'Bloom', draw: bloomCard },
+  { name: 'Night', draw: nightCard },
+  { name: 'Proof', draw: proofCard },
+]
 
-// Each press prints the next design, so pressing again gives a new card
-export async function postcard(text: string, name = '') {
+export async function postcard(text: string, name = '', design = 0) {
   await document.fonts.load('400 64px "Courier Prime"')
   const c = document.createElement('canvas')
   c.width = W
@@ -364,9 +366,7 @@ export async function postcard(text: string, name = '') {
     time: new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(now),
     name: name.trim().slice(0, 28),
   }
-  const design = designs[next]!
-  next = (next + 1) % designs.length
-  design(ctx, seeded(seed), text.split('\n'), meta)
+  designs[design]!.draw(ctx, seeded(seed), text.split('\n'), meta)
 
   await new Promise<void>((done) =>
     c.toBlob((b) => {

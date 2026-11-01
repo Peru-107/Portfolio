@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { postcard } from './postcard'
+// The card designs load on first print, not with the page
+const designs = ['Bloom', 'Night', 'Proof']
+const print = (text: string, name: string, design: number) => import('./postcard').then((m) => m.postcard(text, name, design))
 
 // Write in ink: type on the first screen and your words are struck onto the
 // paper under my name, letter by letter, each one a little uneven like real
@@ -39,6 +41,7 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
   const [text, setText] = useState('')
   const [printing, setPrinting] = useState(false)
   const [name, setName] = useState('')
+  const [design, setDesign] = useState(0)
   const box = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLTextAreaElement>(null)
   const prev = useRef('')
@@ -132,6 +135,13 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
       )}
 
       <div className="tw__actions" data-on={text ? '' : undefined}>
+        <div className="tw__designs" role="radiogroup" aria-label="Card design">
+          {designs.map((d, i) => (
+            <button key={d} type="button" role="radio" aria-checked={design === i} className="tw__design" onClick={() => setDesign(i)}>
+              {d}
+            </button>
+          ))}
+        </div>
         <input
           className="tw__sign"
           value={name}
@@ -148,7 +158,7 @@ export function Typewriter({ onWrite }: { onWrite?: () => void }) {
           onClick={() => {
             setPrinting(true)
             // Let the label change paint before the card is drawn
-            setTimeout(() => postcard(text, name).finally(() => setPrinting(false)), 30)
+            setTimeout(() => print(text, name, design).finally(() => setPrinting(false)), 30)
           }}
         >
           {printing ? 'Printing…' : 'Print it'}

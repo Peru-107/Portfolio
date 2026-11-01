@@ -138,7 +138,11 @@ button { font: inherit; color: inherit; }
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .ink-fallback[data-on] { display: block; }
-@keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(255, 106, 26, 0); } }
+/* The live dot breathes with a ring that scales out: transform and opacity only, so it never repaints */
+.pitch__status i, .teaser__label i { position: relative; }
+.pitch__status i::after, .teaser__label i::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; background: rgba(255, 106, 26, 0.35); transform: scale(0.4); opacity: 0; animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 0% { transform: scale(0.4); opacity: 0.9; } 70%, 100% { transform: scale(1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pitch__status i::after, .teaser__label i::after { animation: none; } }
 
 /* Work */
 .wp__stage {
@@ -313,7 +317,7 @@ button { font: inherit; color: inherit; }
   color: var(--paper); display: flex; flex-direction: column; justify-content: flex-end; gap: 18px; min-height: 420px;
 }
 .teaser__label { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: var(--fs-ui); color: var(--ember); }
-.teaser__label i { width: 8px; height: 8px; border-radius: 50%; background: var(--magma); animation: pulse 2.4s ease-in-out infinite; }
+.teaser__label i { width: 8px; height: 8px; border-radius: 50%; background: var(--magma); }
 .teaser__title {
   font-family: var(--display); font-weight: 800; font-size: clamp(64px, 9vw, 150px); line-height: 0.9; letter-spacing: -0.04em;
   color: transparent; -webkit-text-stroke: 1.5px rgba(233, 236, 239, 0.7);
@@ -340,13 +344,6 @@ button { font: inherit; color: inherit; }
 .hero { position: relative; height: 100svh; min-height: 560px; overflow: hidden; }
 /* The name and its ink, moved as one piece while the screen is held */
 .hero__stage { position: absolute; inset: 0; display: grid; align-items: center; padding: 0 var(--gutter); transform-origin: 50% 0; will-change: transform; pointer-events: none; }
-/* The ink runs edge to edge and fades out softly on every side, never ending on a hard line */
-.hero .ink-canvas {
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 80%, transparent);
-  -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 80%, transparent);
-  mask-composite: intersect;
-}
 .hero__mark { position: relative; height: clamp(90px, min(20vw, 30vh), 320px); pointer-events: none; }
 /* What I do: slides in under the name, inside the same screen */
 .hero__pitch { position: absolute; left: var(--gutter); right: var(--gutter); bottom: clamp(28px, 6vh, 64px); display: grid; gap: clamp(28px, 5vh, 56px); pointer-events: none; }
@@ -365,7 +362,7 @@ button { font: inherit; color: inherit; }
 .pitch__facts dt { font-size: var(--fs-caption); color: var(--ink-soft); }
 .pitch__facts dd { font-weight: 600; color: var(--ink); white-space: nowrap; }
 .pitch__status { display: flex; align-items: center; gap: 10px; font-weight: 500; }
-.pitch__status i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--magma); box-shadow: 0 0 0 4px rgba(255, 106, 26, 0.2); animation: pulse 2.4s ease-in-out infinite; }
+.pitch__status i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--magma); box-shadow: 0 0 0 4px rgba(255, 106, 26, 0.2); }
 .pitch__link { justify-self: start; font-weight: 600; color: var(--ink); white-space: nowrap; background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1.5px no-repeat; padding-bottom: 3px; transition: background-size 0.45s var(--ease-out); }
 .pitch__link:hover { background-size: 0 1.5px; background-position: 100% 100%; }
 
@@ -484,6 +481,9 @@ button { font: inherit; color: inherit; }
 @keyframes caret { 50% { opacity: 0; } }
 .tw__actions { display: flex; gap: 8px; opacity: 0; transform: translateY(6px); transition: opacity 0.4s, transform 0.5s var(--ease-out); }
 .tw__actions[data-on] { opacity: 1; transform: none; pointer-events: auto; }
+.tw__designs { display: flex; padding: 3px; border-radius: 999px; border: 1px solid var(--line); background: rgba(233, 236, 239, 0.7); }
+.tw__design { min-height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: none; font-family: var(--ui); font-size: var(--fs-caption); font-weight: 600; color: var(--ink-soft); cursor: pointer; transition: background-color 0.25s, color 0.25s; }
+.tw__design[aria-checked='true'] { background: var(--ink); color: var(--paper); }
 .tw__sign { min-height: 40px; width: 210px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(233, 236, 239, 0.7); font-family: 'Courier Prime', 'Courier New', monospace; font-size: var(--fs-caption); color: var(--ink); }
 .tw__sign::placeholder { color: var(--ink-soft); }
 .tw__sign:focus-visible { outline: 2px solid var(--magma); outline-offset: 2px; }

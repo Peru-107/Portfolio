@@ -107,7 +107,7 @@ const FADE = head + /* glsl */ `
 // edge pushed around by the flow so it never reads as a hard stencil
 const DISPLAY = head + /* glsl */ `
   uniform sampler2D uDye; uniform sampler2D uVelocity; uniform sampler2D uMask;
-  uniform vec3 paper; uniform vec2 dyeTexel; uniform float time; uniform float outside; uniform float reveal;
+  uniform vec3 paper; uniform vec2 dyeTexel; uniform float time; uniform float outside; uniform float reveal; uniform float edges;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   void main() {
     vec2 vel = texture2D(uVelocity, vUv).xy;
@@ -128,6 +128,11 @@ const DISPLAY = head + /* glsl */ `
     vec3 out_ = paper - dye * outside;
     vec3 col = mix(out_, inside, mask);
     col += (hash(vUv * 900.0 + time) - 0.5) * 0.028;
+    // Soft fade to paper on every side, here rather than as a CSS mask on the
+    // canvas, which would make the browser re-composite the page each frame
+    float fx = clamp(vUv.x / 0.07, 0.0, 1.0) * clamp((1.0 - vUv.x) / 0.07, 0.0, 1.0);
+    float fy = clamp((1.0 - vUv.y) / 0.09, 0.0, 1.0) * clamp(vUv.y / 0.2, 0.0, 1.0);
+    col = mix(col, paper, edges * (1.0 - fx * fy));
     gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
   }
 `
@@ -170,18 +175,28 @@ export class InkField {
   private queue: { x: number; y: number; dx: number; dy: number; color: [number, number, number]; r: number }[] = []
   reveal = 0
   /** How much ink shows outside the shapes (trails); 0.1 keeps it subtle */
+  set edges(on: boolean) {
+    this.mats.display!.uniforms.edges!.value = on ? 1 : 0
+  }
   set outside(v: number) {
     this.mats.display!.uniforms.outside!.value = v
   }
   private pendingScroll = 0
   private shiftNow: [number, number] = [0, 0]
-  private maskTouches = 0
+  private sampleTimer = 0
   pressed = false
+  // Phones and small machines get a lighter simulation that looks the same at
+  // their size: fewer pressure passes, a dye field sized to the screen, and a
+  // lower pixel ratio. If frames still run long, the ratio steps down again.
+  private light = matchMedia('(hover: none), (max-width: 759px)').matches || (navigator.hardwareConcurrency || 8) <= 4
+  private dpr = Math.min(window.devicePixelRatio, this.light ? 1.5 : 2)
+  private iterations = this.light ? 12 : 18
+  private slowFrames = 0
+  private sampled = 0
 
   constructor(private o: InkOptions) {
-    // preserveDrawingBuffer lets the page take a picture of the ink (the printable postcard)
-    this.renderer = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    this.renderer = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, alpha: false, powerPreference: 'high-performance' })
+    this.renderer.setPixelRatio(this.dpr)
     this.renderer.autoClear = false
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2))
     this.quad.frustumCulled = false
@@ -200,7 +215,7 @@ export class InkField {
     m('pressure', PRESSURE, { uPressure: tex(), uDivergence: tex() })
     m('gradient', GRADIENT, { uPressure: tex(), uVelocity: tex() })
     m('fade', FADE, { uTexture: tex(), value: { value: 0.8 } })
-    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, paper: { value: new THREE.Vector3(...o.paper) }, dyeTexel: { value: new THREE.Vector2() }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 } })
+    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, paper: { value: new THREE.Vector3(...o.paper) }, dyeTexel: { value: new THREE.Vector2() }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 } })
 
     this.resize()
   }
@@ -231,8 +246,10 @@ export class InkField {
     this.renderer.setSize(w, h, false)
     const aspect = w / h
     const res = (base: number) => (aspect >= 1 ? [Math.round(base * aspect), base] : [base, Math.round(base / aspect)])
-    ;[this.simW, this.simH] = res(160)
-    ;[this.dyeW, this.dyeH] = res(Math.min(720, Math.round(h * 0.9)))
+    ;[this.simW, this.simH] = res(this.light ? 128 : 160)
+    // The dye never needs more pixels than the screen shows along its short side
+    const short = Math.min(w, h) * this.dpr
+    ;[this.dyeW, this.dyeH] = res(Math.min(this.light ? 420 : 720, Math.round(short * 0.9), Math.round(Math.max(w, h) * 0.9)))
     ;[this.vel, this.dye, this.pressure].forEach((d) => d && (d.read.dispose(), d.write.dispose()))
     this.div?.dispose()
     this.curl?.dispose()
@@ -314,7 +331,9 @@ export class InkField {
   /** The mask canvas was redrawn in place (same size): upload it, and now and then re-sample it */
   maskChanged() {
     this.maskTex.needsUpdate = true
-    if (this.maskTouches++ % 8 === 0) this.sampleMask()
+    // Reading the mask back is slow; do it once the shape has stopped moving
+    clearTimeout(this.sampleTimer)
+    this.sampleTimer = window.setTimeout(() => this.sampleMask(), 250)
   }
 
   /** Ink fed at a point, along a direction: used to pour ink into a line as it draws */
@@ -358,7 +377,7 @@ export class InkField {
     this.pass('divergence', this.div, { uVelocity: this.vel.read.texture }, sim)
     this.pass('fade', this.pressure.write, { uTexture: this.pressure.read.texture, value: 0.8 }, sim)
     this.pressure.swap()
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < this.iterations; i++) {
       this.pass('pressure', this.pressure.write, { uPressure: this.pressure.read.texture, uDivergence: this.div.texture }, sim)
       this.pressure.swap()
     }
@@ -372,6 +391,7 @@ export class InkField {
 
   private frame = () => {
     const now = performance.now()
+    this.adapt(now - this.last)
     // The whole simulation runs at half speed: ink should drift, not rush
     const dt = Math.min((now - this.last) / 1000, 1 / 30) * 0.5
     this.last = now
@@ -405,8 +425,24 @@ export class InkField {
     if (this.running) this.raf = requestAnimationFrame(this.frame)
   }
 
+  // Watches real frame times for a few seconds after each start; a device that
+  // can't keep up drops to a lower pixel ratio, then fewer pressure passes
+  private adapt(ms: number) {
+    if (this.sampled > 240 || ms > 200) return
+    this.sampled++
+    this.slowFrames = ms > 22 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 1)
+    if (this.slowFrames < 30) return
+    this.slowFrames = 0
+    if (this.dpr > 1) {
+      this.dpr = Math.max(1, this.dpr - 0.5)
+      this.renderer.setPixelRatio(this.dpr)
+      this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1, false)
+    } else if (this.iterations > 8) this.iterations -= 4
+  }
+
   start() {
     if (this.running) return
+    this.sampled = 0
     this.running = true
     this.last = performance.now()
     if (this.o.reducedMotion) {
@@ -432,6 +468,7 @@ export class InkField {
 
   dispose() {
     this.stop()
+    clearTimeout(this.sampleTimer)
     ;[this.vel, this.dye, this.pressure].forEach((d) => (d.read.dispose(), d.write.dispose()))
     this.div.dispose()
     this.curl.dispose()

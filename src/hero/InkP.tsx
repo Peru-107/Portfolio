@@ -21,7 +21,8 @@ type Box = { x: number; y: number; w: number; h: number }
 function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layout: Layout, box?: Box | null) {
   // A word has small counters (the slit in the e): draw it sharp and full size
   // drawn at the screen's real pixel density (up to 2x) so edges stay crisp on high-DPI displays
-  const scale = layout === 'wordmark' ? Math.min(window.devicePixelRatio || 1, 2) : 0.5
+  const light = matchMedia('(hover: none), (max-width: 759px)').matches
+  const scale = layout === 'wordmark' ? Math.min(window.devicePixelRatio || 1, light ? 1.5 : 2) : 0.5
   // Resizing a canvas reallocates it; only do that when the size really changed
   const cw = Math.max(2, Math.round(w * scale))
   const ch = Math.max(2, Math.round(h * scale))
@@ -84,6 +85,8 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       return
     }
     field.current = f
+    // The hero's ink fades out on every side
+    f.edges = layout === 'wordmark'
     document.fonts.load('800 100px Panchang').then(() => {
       drawMask(mask, c.clientWidth, c.clientHeight, text, layout, box())
       f.refreshMask()
@@ -107,7 +110,15 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     if (anchor?.current) ro.observe(anchor.current)
 
     // Only simulate while the hero is on screen
-    const io = new IntersectionObserver(([e]) => (e!.isIntersecting && wanted.current ? f.start() : f.stop()), { threshold: 0, rootMargin: '25% 0px 25% 0px' })
+    let onScreen = true
+    const io = new IntersectionObserver(
+      ([e]) => {
+        onScreen = e!.isIntersecting
+        if (onScreen && wanted.current) f.start()
+        else f.stop()
+      },
+      { threshold: 0, rootMargin: '25% 0px 25% 0px' },
+    )
     io.observe(c)
 
     let stirred = false
@@ -205,6 +216,8 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     let lastBox = box()
     const follow = () => {
       trackRaf = requestAnimationFrame(follow)
+      // Off screen, nothing to follow: skip the layout read entirely
+      if (!onScreen) return
       const b = box()
       if (!b || !lastBox) return
       if (Math.abs(b.y - lastBox.y) + Math.abs(b.h - lastBox.h) < 0.5) return

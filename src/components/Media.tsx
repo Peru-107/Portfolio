@@ -7,11 +7,18 @@ function Video({ m }: { m: Extract<M, { type: 'video' }> }) {
   useEffect(() => {
     const el = v.current!
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const io = new IntersectionObserver(([e]) => (e!.isIntersecting ? el.play().catch(() => {}) : el.pause()), { threshold: 0.25 })
+    const io = new IntersectionObserver(([e]) => (e!.isIntersecting ? el.play().catch(() => {}) : el.pause()), { threshold: 0.25, rootMargin: '200px 0px' })
     io.observe(el)
     return () => io.disconnect()
   }, [])
-  return <video ref={v} className="media__video" src={m.src} poster={m.poster} muted loop playsInline preload="metadata" aria-label={m.alt} />
+  // WebM (VP9) is about a quarter smaller; MP4 stays as the fallback. Nothing
+  // downloads until the video is about to play.
+  return (
+    <video ref={v} className="media__video" poster={m.poster} muted loop playsInline preload="none" aria-label={m.alt}>
+      {m.src.endsWith('.mp4') && <source src={m.src.replace(/\.mp4$/, '.webm')} type="video/webm" />}
+      <source src={m.src} type="video/mp4" />
+    </video>
+  )
 }
 
 export function Media({ m, priority }: { m: M; priority?: boolean }) {

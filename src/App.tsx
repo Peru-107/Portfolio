@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Cursor } from './components/Cursor'
 import { Preloader } from './components/Preloader'
 import { Header } from './components/Header'
@@ -7,11 +7,13 @@ import { Work } from './components/Work'
 import { About } from './components/About'
 import { Experience } from './components/Experience'
 import { Contact } from './components/Contact'
-import { Case } from './components/Case'
-import { InkStory } from './lab/InkStory'
 import { setTransition, usePath } from './lib/router'
 import { gsap, reduced, scrollTop, ScrollTrigger, startScroll } from './lib/motion'
 import { site } from './content'
+
+// Case studies and the lab load only when visited, so the first screen downloads less
+const Case = lazy(() => import('./components/Case').then((m) => ({ default: m.Case })))
+const InkStory = lazy(() => import('./lab/InkStory').then((m) => ({ default: m.InkStory })))
 
 export default function App() {
   const path = usePath()
@@ -56,6 +58,7 @@ export default function App() {
       <Cursor />
       <Header />
       <div id="main">
+        <Suspense fallback={null}>
         {path.replace(/\/$/, '') === '/ink-story' ? (
           <InkStory />
         ) : slug ? (
@@ -70,6 +73,7 @@ export default function App() {
             <Contact />
           </main>
         )}
+        </Suspense>
       </div>
       <div ref={wipe} className="wipe" aria-hidden="true">
         <span>{site.name}</span>
