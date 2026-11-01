@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { alsoBuilt, education, experience, recognition } from '../content'
 import { tick } from '../lib/haptic'
 import { Count } from './Count'
+import { Marked } from './Marked'
 
 // The CV, as a page section: where I’ve worked as compact rows that open for
 // the detail, then what I study and the smaller projects
@@ -38,7 +39,7 @@ export function Experience() {
               <div id={`xp-${i}`} className="xp__body" role="region" aria-labelledby={`xp-btn-${i}`}>
                 <div>
                   <ul>
-                    {j.points.map((pt) => <li key={pt}>{pt}</li>)}
+                    {j.points.map((pt) => <li key={pt}><Marked>{pt}</Marked></li>)}
                   </ul>
                 </div>
               </div>

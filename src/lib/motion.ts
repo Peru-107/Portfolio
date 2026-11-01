@@ -11,7 +11,18 @@ export const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matc
 let lenis: Lenis | null = null
 
 // Lenis driven from GSAP's ticker, so ScrollTrigger never reads a stale scroll
+// iPhone and iPad (which reports itself as a Mac with a touch screen)
+const iOS = typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
 export function startScroll() {
+  // Safari runs its momentum scroll apart from the page's scripts, so pinned
+  // sections lag a frame and shudder. Here the scroll is driven on the same
+  // thread as the animation instead, which keeps pins and scroll locked
+  // together. Lenis stays off on these devices: the two would fight.
+  if (iOS) {
+    ScrollTrigger.normalizeScroll(true)
+    return
+  }
   if (lenis || reduced()) return
   // A steady lerp rather than a fixed duration: every wheel step, large or small, glides the same way
   lenis = new Lenis({ lerp: 0.085, smoothWheel: true, wheelMultiplier: 0.9 })

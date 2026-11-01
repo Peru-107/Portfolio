@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { site } from '../content'
 import { gsap, reduced } from '../lib/motion'
 import { Count } from './Count'
+import { Marked } from './Marked'
 
 export function About() {
   const root = useRef<HTMLElement>(null)
@@ -37,7 +38,7 @@ export function About() {
           </div>
         ))}
       </dl>
-      <p className="about__rest" data-reveal="fade">{rest}</p>
+      <p className="about__rest" data-reveal="fade"><Marked>{rest!}</Marked></p>
       <div className="about__tools">
         {site.tools.map((t, i) => (
           <div key={t.group} className="about__group" data-reveal="fade" style={{ ['--i' as string]: i }}>

@@ -41,7 +41,7 @@ export const site = {
   manifesto: ['I want such ideas.', '…and I build them.'],
   about: [
     'I study two things at once: computer engineering and finance. One taught me how to build a product, the other how to ask whether it is worth building.',
-    'Outside class I ship my own apps. I design them, write the code and keep going until they feel right. Before all of this I represented India at the Karate World Championship, which is where I learned to practise the same move a thousand times.',
+    'Outside class I ship my own apps. I design them, write the code and keep going until they feel right. Before all of this I ==represented India at the Karate World Championship==, which is where I learned to practise the same move a thousand times.',
   ],
   tools: [
     { group: 'Design', items: ['UI and UX design', 'Design systems', 'Motion', 'Prototyping'] },
@@ -57,7 +57,7 @@ export const experience = [
     when: 'May – Sep 2026',
     points: [
       'Consolidated and checked data for budgeting, P&L, balance sheet and cash-flow reporting, flagging discrepancies before they reached management.',
-      'Processed about 120 forex approvals a day in the SAP-based Canvas system and grouped spot purchases by currency.',
+      'Processed ==about 120 forex approvals a day== in the SAP-based Canvas system and grouped spot purchases by currency.',
     ],
   },
   {
@@ -66,7 +66,7 @@ export const experience = [
     when: 'May – Jul 2025',
     points: [
       'Designed JMeter load tests for a banking application and monitored the backend with Dynatrace.',
-      'Built a synthetic monitoring system in Java, MySQL and Grafana that handles OTP steps and captures error screenshots, plus a multithreaded Selenium tool for URL and asset checks.',
+      'Built a ==synthetic monitoring system== in Java, MySQL and Grafana that handles OTP steps and captures error screenshots, plus a multithreaded Selenium tool for URL and asset checks.',
     ],
   },
 ]

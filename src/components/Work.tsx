@@ -51,7 +51,8 @@ export function Work() {
           pin: true,
           scrub: true,
           invalidateOnRefresh: true,
-          snap: stepped ? { snapTo: 'labels', duration: { min: 0.2, max: 0.45 }, delay: 0.08, ease: 'power3.out', onComplete: () => tick() } : undefined,
+          // A short, quick settle: a tap right after a flick lands on a still card
+          snap: stepped ? { snapTo: 'labels', duration: { min: 0.15, max: 0.3 }, delay: 0.04, ease: 'power3.out', onComplete: () => tick() } : undefined,
         },
       })
       // Dealt: each card flies to its place in a flat row

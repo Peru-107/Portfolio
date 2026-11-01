@@ -649,3 +649,9 @@ a, button, input, textarea, [role='radio'] { touch-action: manipulation; -webkit
 @media (prefers-reduced-motion: reduce) {
   [data-reveal], [data-reveal] > span, [data-reveal]::before, .count__reel { transition: none !important; }
 }
+
+/* A highlighter mark on the facts that matter: magma laid under the words from the left */
+.mark { color: inherit; padding: 0.04em 0.12em; margin: 0 -0.12em; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  background: linear-gradient(var(--magma), var(--magma)) 0 0 / 0% 100% no-repeat; transition: background-size 0.7s var(--ease-out) 0.25s, color 0.3s 0.25s; }
+.mark[data-in] { background-size: 100% 100%; color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .mark { transition: none; } }
