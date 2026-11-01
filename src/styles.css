@@ -505,7 +505,8 @@ button { font: inherit; color: inherit; }
 @media (max-width: 959px), (prefers-reduced-motion: reduce) {
   .w2 { height: auto; min-height: 0; padding: clamp(96px, 14vh, 140px) var(--gutter) 40px; }
   .w2__head { padding: 0; flex-direction: column; }
-  .w2__row { position: static; height: auto; display: grid; gap: 72px; margin-top: 48px; perspective: none; }
+  .w2__row { position: static; height: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 72px; margin-top: 48px; perspective: none; }
+  .w2__media img, .w2__media video { max-width: 100%; }
   .w2__card { position: relative; height: auto; width: 100%; aspect-ratio: auto; }
   .w2__media { aspect-ratio: 16 / 9; height: auto; }
   .w2__cap { position: static; margin-top: 14px; }
