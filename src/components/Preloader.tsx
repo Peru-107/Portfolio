@@ -105,7 +105,9 @@ export function Preloader({ onDone }: { onDone: () => void }) {
         // Hand over: the page's live ink starts as this fades away
         .add(finish, '+=0.1')
         .to('.pre__meta', { autoAlpha: 0, duration: 0.3 }, '<')
-        .to(el, { autoAlpha: 0, duration: 0.8, ease: 'power2.out' }, '<0.15')
+        // The word softens with a Gaussian blur and dissolves into the live ink beneath
+        .to('.pre__word', { filter: 'blur(26px)', autoAlpha: 0, scale: 1.03, duration: 1.1, ease: 'power2.inOut' }, '<')
+        .to(el, { backgroundColor: 'rgba(233, 236, 239, 0)', duration: 1.1, ease: 'power2.inOut' }, '<')
         .set(el, { display: 'none' })
     })
 

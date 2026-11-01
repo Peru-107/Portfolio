@@ -5,7 +5,7 @@ import { alsoBuilt, education, experience, recognition } from '../content'
 export function Experience() {
   return (
     <section id="experience" className="xp" aria-labelledby="xp-title">
-      <h2 id="xp-title" className="xp__title">Experience</h2>
+      <h2 id="xp-title" className="xp__title">Where I’ve <span className="accent">worked.</span></h2>
       <ol className="xp__jobs">
         {experience.map((j) => (
           <li key={j.org} className="xp__job">

@@ -16,7 +16,7 @@ export function Contact() {
   }
   return (
     <section id="contact" className="contact" aria-labelledby="contact-title">
-      <h2 id="contact-title" className="contact__title">Got an idea that should exist?</h2>
+      <h2 id="contact-title" className="contact__title">Got an idea that <span className="accent">should exist?</span></h2>
       <div className="contact__mail">
         <Magnetic strength={0.18}>
           <a href={`mailto:${site.email}`} className="contact__email" data-cursor="Write">

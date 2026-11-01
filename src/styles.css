@@ -104,6 +104,10 @@ button { font: inherit; color: inherit; }
 .pre__count { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
 
 /* Page wipe */
+.wipe {
+  position: fixed; inset: 0; z-index: 110; background: var(--magma);
+  display: grid; place-items: center; visibility: hidden; opacity: 0; pointer-events: none;
+}
 .wipe span { font-family: var(--display); font-weight: 800; font-size: clamp(40px, 9vw, 140px); color: var(--ink); }
 
 /* Header */
@@ -449,4 +453,15 @@ button { font: inherit; color: inherit; }
   .hero { height: auto; min-height: 0; overflow: visible; }
   .hero__stage { position: relative; height: 70svh; }
   .hero__pitch { position: relative; left: auto; right: auto; bottom: auto; padding: 0 var(--gutter) var(--section); }
+}
+
+/* Magma carries the point of each heading */
+.accent { color: var(--magma); }
+.about__lead .w.accent { color: var(--magma); }
+.about__facts { grid-column: 4 / span 9; margin-top: clamp(40px, 7vh, 72px); }
+@media (max-width: 759px) {
+  .about__facts { grid-column: 1; grid-template-columns: 1fr 1fr; row-gap: 14px; }
+  .about__facts div { padding-right: 12px; min-width: 0; }
+  .about__facts div:nth-child(3) { padding-left: 0; border-left: 0; }
+  .about__facts dd { white-space: normal; }
 }

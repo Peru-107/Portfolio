@@ -21,8 +21,11 @@ type Box = { x: number; y: number; w: number; h: number }
 function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layout: Layout, box?: Box | null) {
   // A word has small counters (the slit in the e): draw it sharp and full size
   const scale = layout === 'wordmark' ? 1 : 0.5
-  c.width = Math.max(2, Math.round(w * scale))
-  c.height = Math.max(2, Math.round(h * scale))
+  // Resizing a canvas reallocates it; only do that when the size really changed
+  const cw = Math.max(2, Math.round(w * scale))
+  const ch = Math.max(2, Math.round(h * scale))
+  if (c.width !== cw) c.width = cw
+  if (c.height !== ch) c.height = ch
   const ctx = c.getContext('2d')!
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, c.width, c.height)
@@ -93,7 +96,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     if (anchor?.current) ro.observe(anchor.current)
 
     // Only simulate while the hero is on screen
-    const io = new IntersectionObserver(([e]) => (e!.isIntersecting && wanted.current ? f.start() : f.stop()), { threshold: 0 })
+    const io = new IntersectionObserver(([e]) => (e!.isIntersecting && wanted.current ? f.start() : f.stop()), { threshold: 0, rootMargin: '25% 0px 25% 0px' })
     io.observe(c)
 
     let stirred = false

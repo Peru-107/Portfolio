@@ -17,10 +17,22 @@ export function About() {
     <section ref={root} id="about" className="about" aria-labelledby="about-title">
       <h2 id="about-title" className="about__title">About</h2>
       <p className="about__lead">
-        {lead!.split(' ').map((w, i) => (
-          <span key={i} className="w">{w} </span>
-        ))}
+        {(() => {
+          // Everything after the colon, up to the full stop, is the point: it's set in magma
+          let on = false
+          return lead!.split(' ').map((w, i) => {
+            const accent = on
+            if (w.endsWith(':')) on = true
+            if (accent && w.endsWith('.')) on = false
+            return <span key={i} className={accent ? 'w accent' : 'w'}>{w} </span>
+          })
+        })()}
       </p>
+      <dl className="pitch__facts about__facts">
+        {site.facts.map((f) => (
+          <div key={f.k}><dt>{f.k}</dt><dd>{f.v}</dd></div>
+        ))}
+      </dl>
       <p className="about__rest">{rest}</p>
       <p className="about__now"><i aria-hidden="true" />{site.now}</p>
       <div className="about__tools">
