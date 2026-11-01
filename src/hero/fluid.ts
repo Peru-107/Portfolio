@@ -32,12 +32,12 @@ const SPLAT = head + /* glsl */ `
 
 const ADVECT = head + /* glsl */ `
   uniform sampler2D uVelocity; uniform sampler2D uSource; uniform vec2 velTexel; uniform float dt; uniform float dissipation;
-  uniform sampler2D uMask; uniform float holdInside; uniform vec2 shift;
+  uniform sampler2D uMask; uniform vec3 maskXf; uniform float holdInside; uniform vec2 shift;
   void main() {
     vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * velTexel + shift;
     vec4 v = texture2D(uSource, coord);
     // Ink inside the letter dries slower than ink that escapes it
-    float m = texture2D(uMask, vUv).r;
+    float m = texture2D(uMask, vUv * maskXf.x + maskXf.yz).r;
     float d = mix(dissipation, dissipation * holdInside, m);
     gl_FragColor = v / (1.0 + d * dt);
   }
@@ -103,16 +103,26 @@ const FADE = head + /* glsl */ `
   void main() { gl_FragColor = value * texture2D(uTexture, vUv); }
 `
 
+// Fills the letter's shape with one ink in a single pass: the loading screen's
+// solid word becomes this ink, so the hand-over shows no seam
+const FLOOD = head + /* glsl */ `
+  uniform sampler2D uTarget; uniform sampler2D uMask; uniform vec3 maskXf; uniform vec3 color;
+  void main() {
+    float m = smoothstep(0.42, 0.58, texture2D(uMask, vUv * maskXf.x + maskXf.yz).r);
+    gl_FragColor = vec4(mix(texture2D(uTarget, vUv).rgb, color, m), 1.0);
+  }
+`
+
 // Paper minus ink, a glossy lit edge where the ink is thick, and the letter's
 // edge pushed around by the flow so it never reads as a hard stencil
 const DISPLAY = head + /* glsl */ `
-  uniform sampler2D uDye; uniform sampler2D uVelocity; uniform sampler2D uMask;
+  uniform sampler2D uDye; uniform sampler2D uVelocity; uniform sampler2D uMask; uniform vec3 maskXf;
   uniform vec3 paper; uniform vec2 dyeTexel; uniform float time; uniform float outside; uniform float reveal; uniform float edges;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   void main() {
     vec2 vel = texture2D(uVelocity, vUv).xy;
     // The flow nudges the letter's edge, so it sways with the ink
-    float m = texture2D(uMask, vUv + vel * 0.000025).r;
+    float m = texture2D(uMask, (vUv + vel * 0.000025) * maskXf.x + maskXf.yz).r;
     float mask = smoothstep(0.42, 0.58, m) * reveal;
 
     vec3 dye = texture2D(uDye, vUv).rgb;
@@ -167,6 +177,20 @@ export class InkField {
   private ambientAt = 0
   private inkIndex = 0
   private maskPoints: [number, number][] = []
+  // Where the drawn letter shape sits now: screen uv * k + c gives mask uv.
+  // Moving the word (the scroll glide) only changes these three numbers
+  private maskXf = [1, 0, 0]
+  /** The word moved or scaled since its shape was drawn; follow it without redrawing */
+  setMaskTransform(k: number, cx: number, cy: number) {
+    this.maskXf[0] = k
+    this.maskXf[1] = cx
+    this.maskXf[2] = cy
+  }
+  // A point inside the letter, in today's screen position
+  private onWord(p: [number, number]): [number, number] {
+    const [k, cx, cy] = this.maskXf as [number, number, number]
+    return [(p[0] - cx) / k, (p[1] - cy) / k]
+  }
   private pointer = { x: 0.5, y: 0.5, dx: 0, dy: 0, moved: false, down: false }
   private queue: { x: number; y: number; dx: number; dy: number; color: [number, number, number]; r: number }[] = []
   reveal = 0
@@ -200,14 +224,15 @@ export class InkField {
     }
     const tex = () => ({ value: null })
     m('splat', SPLAT, { uTarget: tex(), aspect: { value: 1 }, color: { value: [0, 0, 0] }, point: { value: [0, 0] }, radius: { value: 0.002 } })
-    m('advect', ADVECT, { uVelocity: tex(), uSource: tex(), velTexel: { value: [0, 0] }, dt: { value: 0.016 }, dissipation: { value: 1 }, uMask: { value: this.maskTex }, holdInside: { value: 1 }, shift: { value: [0, 0] } })
+    m('advect', ADVECT, { uVelocity: tex(), uSource: tex(), velTexel: { value: [0, 0] }, dt: { value: 0.016 }, dissipation: { value: 1 }, uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, holdInside: { value: 1 }, shift: { value: [0, 0] } })
     m('divergence', DIVERGENCE, { uVelocity: tex() })
     m('curl', CURL, { uVelocity: tex() })
     m('vorticity', VORTICITY, { uVelocity: tex(), uCurl: tex(), curl: { value: 16 }, dt: { value: 0.016 } })
     m('pressure', PRESSURE, { uPressure: tex(), uDivergence: tex() })
     m('gradient', GRADIENT, { uPressure: tex(), uVelocity: tex() })
     m('fade', FADE, { uTexture: tex(), value: { value: 0.8 } })
-    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 } })
+    m('flood', FLOOD, { uTarget: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, color: { value: [0, 0, 0] } })
+    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 } })
 
     this.resize()
   }
@@ -226,7 +251,7 @@ export class InkField {
   private makeMaskTexture() {
     this.maskTex?.dispose()
     this.maskTex = this.renderer.mask(this.o.mask)
-    for (const k of ['advect', 'display']) if (this.mats[k]) this.mats[k]!.uniforms.uMask!.value = this.maskTex
+    for (const k of ['advect', 'flood', 'display']) if (this.mats[k]) this.mats[k]!.uniforms.uMask!.value = this.maskTex
   }
 
   resize() {
@@ -294,12 +319,21 @@ export class InkField {
     return [c[0] * k, c[1] * k, c[2] * k]
   }
 
+  /** Fill the letter with ink that reads as the given colour on this paper */
+  flood(rgb: [number, number, number]) {
+    // The display shows paper minus ink (and a touch more inside the letter)
+    const p = this.o.paper
+    const color = [p[0] - 0.07 - rgb[0], p[1] - 0.07 - rgb[1], p[2] - 0.07 - rgb[2]]
+    this.pass('flood', this.dye.write, { uTarget: this.dye.read.texture, uMask: this.maskTex, color }, [this.dyeW, this.dyeH])
+    this.dye.swap()
+  }
+
   /** The opening: ink poured down the letter's strokes */
   pour() {
     const pts = this.maskPoints
     if (!pts.length) return
     for (let i = 0; i < 44; i++) {
-      const p = pts[Math.floor(Math.random() * pts.length)]!
+      const p = this.onWord(pts[Math.floor(Math.random() * pts.length)]!)
       const a = Math.random() * Math.PI * 2
       this.queue.push({ x: p[0], y: p[1], dx: Math.cos(a) * 240, dy: Math.sin(a) * 240 - 110, color: this.nextInk(1.2), r: 0.008 })
     }
@@ -312,7 +346,7 @@ export class InkField {
     if (speed < 3 || !this.maskPoints.length) return
     const n = Math.min(4, Math.ceil(speed / 25))
     for (let i = 0; i < n; i++) {
-      const p = this.maskPoints[Math.floor(Math.random() * this.maskPoints.length)]!
+      const p = this.onWord(this.maskPoints[Math.floor(Math.random() * this.maskPoints.length)]!)
       // Ink lags behind the content: push it the opposite way to the motion
       this.queue.push({ x: p[0], y: p[1], dx: (Math.random() - 0.5) * 60, dy: -dy * 9, color: this.nextInk(Math.min(0.5, speed / 120)), r: 0.003 })
     }
@@ -328,6 +362,7 @@ export class InkField {
 
   /** Ink fed at a point, along a direction: used to pour ink into a line as it draws */
   feed(nx: number, ny: number, dx: number, dy: number, amount = 0.6, r = 0.003) {
+    if (!this.running || this.queue.length > 48) return
     this.queue.push({ x: nx, y: ny, dx, dy, color: this.nextInk(amount), r })
   }
 
@@ -395,14 +430,14 @@ export class InkField {
       const k = this.pressed ? 2.6 : 1
       this.splat(p.x, p.y, p.dx * 2800 * k, p.dy * 2800 * k, this.nextInk(Math.min(0.5 * k, (0.12 + speed * 6) * k)), this.pressed ? 0.003 : 0.0016)
     }
-    while (this.queue.length) {
+    for (let n = 0; n < 10 && this.queue.length; n++) {
       const q = this.queue.shift()!
       this.splat(q.x, q.y, q.dx, q.dy, q.color, q.r)
     }
     // Slow drips keep the letter wet when nobody is touching it
     if (this.t - this.ambientAt > 0.2 && this.maskPoints.length) {
       this.ambientAt = this.t
-      const pt = this.maskPoints[Math.floor(Math.random() * this.maskPoints.length)]!
+      const pt = this.onWord(this.maskPoints[Math.floor(Math.random() * this.maskPoints.length)]!)
       const a = Math.random() * Math.PI * 2
       this.splat(pt[0], pt[1], Math.cos(a) * 70, Math.sin(a) * 70 - 25, this.nextInk(1), 0.006)
     }

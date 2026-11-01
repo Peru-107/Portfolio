@@ -30,11 +30,20 @@ export function useReveals(key: string) {
     // New elements appear when a page or a lazy section renders
     const watch = () => els().forEach((el) => io.observe(el))
     watch()
-    const mo = new MutationObserver(watch)
+    // Batched to one look per frame: typing in the hero adds nodes on every key
+    let queued = 0
+    const mo = new MutationObserver(() => {
+      if (queued) return
+      queued = requestAnimationFrame(() => {
+        queued = 0
+        watch()
+      })
+    })
     mo.observe(document.getElementById('main') ?? document.body, { childList: true, subtree: true })
     return () => {
       io.disconnect()
       mo.disconnect()
+      cancelAnimationFrame(queued)
     }
   }, [key])
 }

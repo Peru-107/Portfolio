@@ -6,9 +6,9 @@ export function Magnetic({ children, strength = 0.35 }: { children: ReactNode; s
   const el = useRef<HTMLSpanElement>(null)
   useEffect(() => {
     const n = el.current!
-    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return
-    const x = gsap.quickTo(n, 'x', { duration: 0.6, ease: 'elastic.out(1, 0.45)' })
-    const y = gsap.quickTo(n, 'y', { duration: 0.6, ease: 'elastic.out(1, 0.45)' })
+    if (!matchMedia('(hover: hover) and (pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const x = gsap.quickTo(n, 'x', { duration: 0.4, ease: 'power3.out' })
+    const y = gsap.quickTo(n, 'y', { duration: 0.4, ease: 'power3.out' })
     const move = (e: PointerEvent) => {
       const r = n.getBoundingClientRect()
       x((e.clientX - (r.left + r.width / 2)) * strength)

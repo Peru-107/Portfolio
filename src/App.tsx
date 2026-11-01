@@ -30,18 +30,26 @@ export default function App() {
     const expand = (from: HTMLElement, swap: () => void) => {
       const media = [...from.querySelectorAll<HTMLElement>('.w2__media')].find((m) => m.offsetParent !== null) ?? from
       const r = media.getBoundingClientRect()
+      // A full-screen sheet holding the card's image, opened through a clip: only
+      // the clip animates, so the browser never has to lay anything out mid-flight
       const sheet = document.createElement('div')
       sheet.className = 'expand'
-      sheet.appendChild(media.cloneNode(true))
-      Object.assign(sheet.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` })
+      const clone = media.cloneNode(true) as HTMLElement
+      // A still in place of any video: nothing to decode during the move
+      clone.querySelectorAll('video').forEach((v) => {
+        const img = document.createElement('img')
+        img.src = v.poster
+        img.className = v.className
+        v.replaceWith(img)
+      })
+      sheet.appendChild(clone)
+      const clip = (t: { left: number; top: number; right: number; bottom: number }) => `inset(${t.top}px ${innerWidth - t.right}px ${innerHeight - t.bottom}px ${t.left}px)`
+      sheet.style.clipPath = clip(r)
       document.body.appendChild(sheet)
       const done = () => void gsap.to(sheet, { autoAlpha: 0, duration: 0.25, ease: 'power2.out', onComplete: () => sheet.remove() })
       gsap.to(sheet, {
-        left: 0,
-        top: 0,
-        width: innerWidth,
-        height: innerHeight,
-        duration: 0.55,
+        clipPath: 'inset(0px 0px 0px 0px)',
+        duration: 0.5,
         ease: 'expo.inOut',
         onComplete: () => {
           swap()
@@ -51,8 +59,7 @@ export default function App() {
           const land = () => {
             const stage = document.querySelector<HTMLElement>('.case__stage')
             if (!stage) return performance.now() < until ? requestAnimationFrame(land) : done()
-            const t = stage.getBoundingClientRect()
-            gsap.to(sheet, { left: t.left, top: t.top, width: t.width, height: t.height, duration: 0.5, ease: 'expo.out', onComplete: done })
+            gsap.to(sheet, { clipPath: clip(stage.getBoundingClientRect()), duration: 0.45, ease: 'expo.out', onComplete: done })
           }
           requestAnimationFrame(land)
         },
@@ -70,19 +77,34 @@ export default function App() {
       gsap
         .timeline()
         .set(wipe.current, { yPercent: 100, autoAlpha: 1 })
-        .to(wipe.current, { yPercent: 0, duration: 0.6, ease: 'expo.in' })
+        .to(wipe.current, { yPercent: 0, duration: 0.45, ease: 'expo.in' })
         .add(() => {
           swap()
           scrollTop()
         })
-        .to(wipe.current, { yPercent: -100, duration: 0.8, ease: 'expo.out', delay: 0.15 })
+        .to(wipe.current, { yPercent: -100, duration: 0.55, ease: 'expo.out', delay: 0.05 })
         .set(wipe.current, { autoAlpha: 0 })
     })
   }, [])
 
+  // After a page change, keyboard and screen-reader focus starts at the new page's title
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) return void (first.current = false)
+    const id = window.setTimeout(() => {
+      const h = document.querySelector<HTMLElement>('#main h1')
+      if (!h) return
+      h.tabIndex = -1
+      h.focus({ preventScroll: true })
+    }, 120)
+    return () => window.clearTimeout(id)
+  }, [path])
+
   useEffect(() => {
     if (path === '/') document.title = `${site.fullName}: design and front-end`
     const id = requestAnimationFrame(() => ScrollTrigger.refresh())
+    // Positions depend on the display face: measure again once it has loaded
+    document.fonts.ready.then(() => ScrollTrigger.refresh())
     return () => cancelAnimationFrame(id)
   }, [path])
 

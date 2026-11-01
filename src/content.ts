@@ -9,7 +9,7 @@ export const site = {
   // The title block under the headline, like the corner of a technical drawing
   facts: [
     { k: 'Studying', v: 'Computer engineering' },
-    { k: 'And', v: 'Finance (MBA Tech)' },
+    { k: 'Alongside', v: 'Finance (MBA Tech)' },
     { k: 'At', v: 'NMIMS, Mumbai' },
     { k: 'Class of', v: '2027' },
   ],
@@ -147,7 +147,7 @@ export const projects: Project[] = [
     year: '2026',
     role: 'Design and build',
     summary: 'Turn what you save into what you do: every saved post gets one next action.',
-    brief: 'We save posts, links and screenshots to do later, and later never comes. Nextup reads each save, gives it one clear next action, and builds a short list for the week.',
+    brief: 'I save posts, links and screenshots to do later, then never open them again. Nextup reads each save, gives it one clear next action, and builds a short list for the week.',
     did: [
       'Save by link, screenshot or the Chrome extension',
       'One next action per save, with a This week, Later and Done flow and Undo everywhere',
@@ -169,7 +169,7 @@ export const projects: Project[] = [
     year: '2026',
     role: 'Design and build',
     summary: 'A calm reading app with a focus room, a sound mixer and a sprout that grows as you read.',
-    brief: 'Reading apps either track you like a fitness app or do nothing at all. Folio is quiet: it asks for a few pages a day and gives you a calm room to read them in.',
+    brief: 'Reading apps either track you like a fitness app or do nothing at all. Folio is quiet: it asks for a few pages a day and gives you a room to read them in.',
     did: [
       'A Today page in one editorial column',
       'A focus room with a 25, 45 or open timer and a full-screen focus mode',
@@ -190,7 +190,7 @@ export const projects: Project[] = [
     kind: 'Android TV home screen',
     year: '2026',
     role: 'Design and build',
-    summary: 'A calm glass home screen for my TV, built for a remote and a slow chip.',
+    summary: 'A glass home screen for my Android TV, built for a remote and a slow chip.',
     brief: 'I wanted a calmer home screen for my TV: a big photo, a few apps and nothing else, readable from across the room and still fast on a weak TV processor.',
     did: [
       'Rotating nature wallpapers with a frosted dock of apps',
@@ -229,6 +229,9 @@ export const projects: Project[] = [
     tone: 'paper',
     cover: { type: 'row', shape: 'slide', bg: '#141518', srcs: ['/media/by-1.webp', '/media/by-2.webp', '/media/by-3.webp'], alt: 'Three byperraz carousel slides about UI colour palettes' },
     portrait: { type: 'image', src: '/media/by-1.webp', alt: 'A byperraz carousel slide about UI colour palettes' },
-    gallery: [],
+    gallery: [
+      { type: 'image', src: '/media/by-2.webp', alt: 'A byperraz carousel slide' },
+      { type: 'image', src: '/media/by-3.webp', alt: 'A byperraz carousel slide' },
+    ],
   },
 ]

@@ -36,11 +36,17 @@ Decided with Perraz, 2 November 2026. This is the reference for every change to 
   - numbers roll into place like a mechanical counter
   - images unveil with a clean edge
 - No section labels or numbering; titles alone.
-- Loader unchanged (Design / Build / Ship).
+- Loader, under a second (Design / Build / Ship): the name is plotted as a halftone of
+  ink dots, the dots swell into solid ink, and the solid word hands over to the live ink
+  in the same place and colour, then starts to flow. No outline.
 
 ## Interaction
 
 - Links: a hairline underline draws in from the left. Buttons invert ink and paper.
+- Square corners everywhere: cards, buttons, fields, focus rings. Only device frames
+  (phone, TV) keep hardware rounding.
+- Highlighter: small headings carry a solid magma mark swept in from the left.
+- Page changes: a sheet of ink (not magma); opening a project grows its card into the page.
 - Desktop: custom cursor and magnetic links.
 - Phones: press feedback (a slight compress and spring back), haptic ticks
   (work card snaps, button presses, typewriter keys, opening an Experience row),

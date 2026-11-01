@@ -52,7 +52,8 @@ export function Contact() {
       </div>
       <ul className="contact__links" data-reveal="fade">
         <li>
-          <button type="button" className="u" onClick={copy} aria-live="polite">{copied ? 'Copied' : 'Copy email'}</button>
+          <button type="button" className="u" onClick={copy}>{copied ? 'Copied' : 'Copy email'}</button>
+          <span role="status" className="sr-only">{copied ? 'Email address copied' : ''}</span>
         </li>
         <li>
           <a className="u" href="/Perraz-Badhniwalla-CV.pdf" download onClick={() => tick()}>Download CV</a>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { InkField } from './fluid'
+import { placeWord } from './wordmark'
 import { gsap } from '../lib/motion'
 
 // The hero mark: a capital P that holds live ink. The mask is drawn from the
@@ -53,16 +54,8 @@ function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layo
   ctx.fillStyle = '#fff'
   ctx.filter = layout === 'wordmark' ? `blur(${0.5 * scale}px)` : 'blur(2px)'
   if (box) {
-    // Typeset once at a fixed size, then scale the drawing: re-typesetting at
-    // every in-between size lets the letter widths snap, which reads as a squeeze
-    const R = 200
-    ctx.font = `800 ${R}px Panchang, "Arial Black", sans-serif`
-    const r = ctx.measureText(text)
-    const gh = r.actualBoundingBoxAscent + r.actualBoundingBoxDescent
-    const k = glyph / gh
-    const ox = box.x * scale - k * r.actualBoundingBoxLeft
-    const oy = box.y * scale + (bh - k * gh) / 2 + k * r.actualBoundingBoxAscent
-    ctx.setTransform(k, 0, 0, k, ox, oy)
+    // Set once and scaled (shared with the loading screen), never re-typeset
+    placeWord(ctx, text, { x: box.x * scale, y: box.y * scale, w: bw, h: bh })
     ctx.fillText(text, 0, 0)
     ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.filter = 'none'
@@ -94,8 +87,18 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     }
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
     let f: InkField
+    // The box the shape was last drawn into; movement from there is a transform
+    let rest = box()
+    const redraw = () => {
+      rest = box()
+      drawMask(mask, c.clientWidth, c.clientHeight, text, layout, rest)
+      // New drawing, so the shaders read it as is: identity transform, fresh upload
+      f?.setMaskTransform(1, 0, 0)
+      f?.maskChanged()
+    }
+    let alive = true
     try {
-      drawMask(mask, c.clientWidth, c.clientHeight, text, layout, box())
+      drawMask(mask, c.clientWidth, c.clientHeight, text, layout, rest)
       f = new InkField({ canvas: c, mask, paper: PAPER, inks: INKS, reducedMotion: reduced })
     } catch {
       fallback.current?.setAttribute('data-on', '')
@@ -105,7 +108,8 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     // The hero's ink fades out on every side
     f.edges = layout === 'wordmark'
     document.fonts.load('800 100px Panchang').then(() => {
-      drawMask(mask, c.clientWidth, c.clientHeight, text, layout, box())
+      if (!alive) return
+      redraw()
       f.refreshMask()
     })
 
@@ -115,7 +119,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     const ro = new ResizeObserver(() => {
       const w = c.clientWidth
       const h = c.clientHeight
-      drawMask(mask, w, h, text, layout, box())
+      redraw()
       if (Math.abs(w - size[0]!) > 2 || Math.abs(h - size[1]!) > 140) {
         size = [w, h]
         f.resize()
@@ -194,7 +198,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     let tiltForce: [number, number] = [0, 0]
     const tiltTimer = window.setInterval(() => {
       const [gx, gy] = tiltForce
-      if (Math.abs(gx) + Math.abs(gy) < 0.2) return
+      if (!onScreen || document.hidden || Math.abs(gx) + Math.abs(gy) < 0.2) return
       firstPlay()
       for (let i = 0; i < 3; i++) f.feed(0.1 + Math.random() * 0.8, 0.3 + Math.random() * 0.5, gx * 320, -gy * 320, 0.25, 0.004)
     }, 140)
@@ -250,8 +254,13 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       if (Math.abs(b.y - lastBox.y) + Math.abs(b.h - lastBox.h) < 0.5) return
       const dy = lastBox.y + lastBox.h / 2 - (b.y + b.h / 2)
       lastBox = b
-      drawMask(mask, c.clientWidth, c.clientHeight, text, layout, b)
-      f.maskChanged()
+      // The shape stays as drawn; the shaders are told where it is now
+      if (rest && rest.h > 0) {
+        const W = c.clientWidth || 1
+        const H = c.clientHeight || 1
+        const s = b.h / rest.h
+        f.setMaskTransform(1 / s, rest.x / W - b.x / (s * W), 1 - rest.y / H - 1 / s + b.y / (s * H))
+      }
       f.scroll(dy)
     }
     // On GSAP's clock, after the scroll animation has placed the word this frame
@@ -261,6 +270,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     c.addEventListener('pointerdown', down)
     window.addEventListener('pointerup', up)
     return () => {
+      alive = false
       ro.disconnect()
       io.disconnect()
       window.removeEventListener('pointermove', move)
@@ -290,6 +300,17 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       return
     }
     f.start()
+    // After the loading screen: the ink starts as that same solid word, then
+    // magma pours in and the letters begin to flow
+    const w = window as unknown as { __inkHandoff?: boolean; __inkFlooded?: boolean }
+    if (w.__inkHandoff) {
+      w.__inkHandoff = false
+      f.reveal = 1
+      f.flood([0.129, 0.145, 0.161])
+      w.__inkFlooded = true
+      const t = window.setTimeout(() => f.pour(), 220)
+      return () => window.clearTimeout(t)
+    }
     f.pour()
     // The letter fades up as the first ink lands in it
     const t0 = performance.now()

@@ -9,6 +9,7 @@ ScrollTrigger.config({ ignoreMobileResize: true })
 export const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 
 let lenis: Lenis | null = null
+let normal: { enable(): void; disable(): void } | null = null
 
 // Lenis driven from GSAP's ticker, so ScrollTrigger never reads a stale scroll
 // iPhone and iPad (which reports itself as a Mac with a touch screen)
@@ -20,7 +21,7 @@ export function startScroll() {
   // thread as the animation instead, which keeps pins and scroll locked
   // together. Lenis stays off on these devices: the two would fight.
   if (iOS) {
-    ScrollTrigger.normalizeScroll(true)
+    if (!reduced()) normal = ScrollTrigger.normalizeScroll({ allowNestedScroll: true, type: 'touch' }) || null
     return
   }
   if (lenis || reduced()) return
@@ -44,8 +45,8 @@ export function scrollToId(id: string) {
 }
 
 export function lockScroll(on: boolean) {
-  if (on) lenis?.stop()
-  else lenis?.start()
+  if (on) (lenis?.stop(), normal?.disable())
+  else (lenis?.start(), normal?.enable())
   document.documentElement.style.overflow = on ? 'hidden' : ''
 }
 

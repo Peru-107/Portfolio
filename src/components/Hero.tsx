@@ -36,7 +36,7 @@ export function Hero({ ready }: { ready: boolean }) {
     const t = window.setTimeout(() => {
       if (scrollY >= 40) return
       if (touch) setInvite(true)
-      else if (!found) setHint('Type something, or scroll.')
+      else if (!found) setHint('Write something, or scroll.')
     }, 10000)
     return () => {
       window.clearTimeout(t)

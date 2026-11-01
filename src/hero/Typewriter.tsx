@@ -59,7 +59,8 @@ export function Typewriter({ onWrite, invite }: { onWrite?: () => void; invite?:
     if (touch) return
     const key = (e: KeyboardEvent) => {
       const t = e.target instanceof Element ? e.target : null
-      if (e.metaKey || e.ctrlKey || e.altKey || t?.closest('input, textarea, select, [contenteditable]')) return
+      // Only when nothing is focused: Enter and Space must still press links and buttons
+      if (e.metaKey || e.ctrlKey || e.altKey || (t && t !== document.body && t.closest('a, button, input, textarea, select, label, [contenteditable], [tabindex]'))) return
       if (scrollY > innerHeight * 0.4) return
       if (e.key === 'Backspace') setText((s) => s.slice(0, -1))
       else if (e.key === 'Enter') setText((s) => add(s, '\n'))
@@ -135,7 +136,7 @@ export function Typewriter({ onWrite, invite }: { onWrite?: () => void; invite?:
 
   return (
     <div ref={self} className="tw" data-filled={text ? '' : undefined}>
-      <div ref={box} className="tw__paper" aria-live="polite" aria-label={text ? `You wrote: ${text}` : undefined}>
+      <div ref={box} className="tw__paper" aria-hidden="true">
         {lines.map((line, li) => (
           <p key={li} className="tw__line">
             {[...line].map((ch, ci) => {
@@ -173,15 +174,18 @@ export function Typewriter({ onWrite, invite }: { onWrite?: () => void; invite?:
         </>
       )}
 
-      <div className="tw__actions" data-on={text ? '' : undefined}>
-        <div className="tw__designs" role="radiogroup" aria-label="Card design">
+      {/* inert until there is something to print: its controls stay out of the tab order while hidden */}
+      <div className="tw__actions" data-on={text ? '' : undefined} {...(text ? {} : { inert: '' })}>
+        <fieldset className="tw__designs">
+          <legend className="sr-only">Card design</legend>
           {designs.map((d, i) => (
-            <button key={d} type="button" role="radio" aria-checked={design === i} className="tw__design" onClick={() => setDesign(i)}>
+            <label key={d} className="tw__design" data-on={design === i ? '' : undefined}>
+              <input type="radio" name="tw-design" className="sr-only" checked={design === i} onChange={() => setDesign(i)} />
               <span className="tw__thumb">{thumbs[i] && <img src={thumbs[i]} alt="" />}</span>
               {d}
-            </button>
+            </label>
           ))}
-        </div>
+        </fieldset>
         <input
           className="tw__sign"
           value={name}

@@ -62,12 +62,13 @@ export function Case({ slug }: { slug: string }) {
         <a className="case__back u" {...linkProps('/')}>All work</a>
         <h1 className="case__title" data-reveal="rise"><span>{p.title}</span></h1>
         <dl className="case__facts" data-reveal="line">
-          <div><dt>Project</dt><dd>{p.kind}</dd></div>
+          <div><dt>Type</dt><dd>{p.kind}</dd></div>
           <div><dt>Role</dt><dd>{p.role}</dd></div>
           <div data-reveal="count"><dt>Year</dt><dd><Count>{p.year}</Count></dd></div>
           {p.link && (
             <div className="case__link">
-              <a href={p.link.href} target="_blank" rel="noreferrer">{p.link.label}</a>
+              <dt className="sr-only">Live</dt>
+              <dd><a href={p.link.href} target="_blank" rel="noreferrer">{p.link.label}</a></dd>
             </div>
           )}
         </dl>

@@ -52,9 +52,10 @@ export function Work() {
           scrub: true,
           invalidateOnRefresh: true,
           // A short, quick settle: a tap right after a flick lands on a still card
-          snap: stepped ? { snapTo: 'labels', duration: { min: 0.15, max: 0.3 }, delay: 0.04, ease: 'power3.out', onComplete: () => tick() } : undefined,
+          snap: stepped ? { snapTo: 'labelsDirectional', duration: { min: 0.15, max: 0.3 }, delay: 0.04, ease: 'power3.out', onComplete: () => tick() } : undefined,
         },
       })
+      tl.addLabel('start', 0)
       // Dealt: each card flies to its place in a flat row
       cards.forEach((c, i) => {
         tl.to(c, { x: () => slot(i), y: 0, z: 0, rotationY: 0, rotationX: 0, duration: 1 }, i * 0.08)
@@ -92,17 +93,17 @@ export function Work() {
             </div>
           </a>
         ))}
-        <aside className="w2__card w2__card--teaser" aria-label={`${site.teaser.title}, ${site.teaser.label.toLowerCase()}`}>
+        <div role="group" className="w2__card w2__card--teaser" aria-label={`${site.teaser.title}, ${site.teaser.label.toLowerCase()}`}>
           <div className="w2__media teaser">
             <p className="teaser__label"><i aria-hidden="true" />{site.teaser.label}</p>
             <p className="teaser__title" aria-hidden="true">{site.teaser.title}</p>
             <p className="teaser__line">{site.teaser.line}</p>
           </div>
           <div className="w2__cap">
-            <p className="w2__kind">In the works</p>
+            <p className="w2__kind">Research desk for Indian markets</p>
             <p className="w2__name">{site.teaser.title}</p>
           </div>
-        </aside>
+        </div>
       </div>
       <div className="w2__bar" aria-hidden="true"><i /></div>
     </section>
