@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { InkP } from '../hero/InkP'
 import { site } from '../content'
 import { gsap, scrollToId } from '../lib/motion'
@@ -10,6 +10,26 @@ export function Hero({ ready }: { ready: boolean }) {
   const root = useRef<HTMLElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const mark = useRef<HTMLDivElement>(null)
+  // A one-line hint, shown only if nobody has found the trick after a few seconds
+  const [hint, setHint] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!ready) return
+    const touch = matchMedia('(hover: none)').matches
+    let found = false
+    const onPlay = () => {
+      found = true
+      setHint(null)
+    }
+    window.addEventListener('ink:played', onPlay)
+    const t = window.setTimeout(() => {
+      if (!found && scrollY < 40) setHint(touch ? 'Tilt your phone.' : 'Type something.')
+    }, 4500)
+    return () => {
+      window.clearTimeout(t)
+      window.removeEventListener('ink:played', onPlay)
+    }
+  }, [ready])
 
   useEffect(() => {
     const mm = gsap.matchMedia()
@@ -42,6 +62,7 @@ export function Hero({ ready }: { ready: boolean }) {
         <div ref={mark} className="hero__mark" aria-hidden="true" />
       </div>
       <h1 className="sr-only">{site.fullName}</h1>
+      <p className="hero__hint" data-on={hint ? '' : undefined} aria-hidden="true">{hint}</p>
       <div className="hero__pitch">
         <div className="pitch__copy">
           <p className="pitch__title" aria-label={site.pitch}>

@@ -465,3 +465,7 @@ button { font: inherit; color: inherit; }
   .about__facts div:nth-child(3) { padding-left: 0; border-left: 0; }
   .about__facts dd { white-space: normal; }
 }
+
+/* The one-line hint on the first screen: quiet, and gone once found */
+.hero__hint { position: absolute; left: 50%; bottom: clamp(28px, 6vh, 56px); transform: translate(-50%, 8px); font-size: var(--fs-caption); font-weight: 500; color: var(--ink-soft); opacity: 0; transition: opacity 0.8s, transform 0.8s var(--ease-out); pointer-events: none; z-index: 2; }
+.hero__hint[data-on] { opacity: 1; transform: translate(-50%, 0); }
