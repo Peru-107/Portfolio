@@ -21,7 +21,7 @@ export function Hero({ ready }: { ready: boolean }) {
   }, [ready])
 
   // The pitch breaks where I choose, not where the column happens to end
-  const lines = ['I design products,', 'build them myself,', 'and know what they’re worth.']
+  const lines = ['I design products,', 'build them myself,', 'and know their worth.']
 
   return (
     <section ref={root} id="top" className="hero">

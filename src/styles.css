@@ -427,7 +427,9 @@ button { font: inherit; color: inherit; }
 }
 .hero__mark { position: relative; height: clamp(90px, min(22vw, 30vh), 300px); pointer-events: none; }
 .hero__body { position: relative; align-self: end; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: clamp(28px, 5vw, 96px); align-items: end; }
-.hero__pitch { font-family: var(--display); font-weight: 700; font-size: clamp(28px, min(4.2vw, 6.4vh), 72px); line-height: 1.02; letter-spacing: -0.02em; }
+.hero__pitch { container-type: inline-size; font-family: var(--display); font-weight: 700; line-height: 1.02; letter-spacing: -0.02em; }
+/* Panchang is very wide: size the lines to the column itself, so the longest one always fits, and cap by screen height */
+.hero__line { font-size: min(5.6cqi, 7vh, 76px); }
 .hero__line { display: block; overflow: hidden; padding-bottom: 0.06em; }
 .hero__line > span { display: block; white-space: nowrap; }
 .hero__line:last-child > span { color: var(--magma); }
@@ -456,7 +458,8 @@ button { font: inherit; color: inherit; }
 .proof__point dt { font-family: var(--ui); font-weight: 600; font-size: 15px; padding-top: 0.2em; }
 .proof__point dd { color: var(--ink-2); max-width: 46ch; }
 .proof__stack { position: relative; aspect-ratio: 5 / 4; }
-.proof .ws[data-bare] .ws__stack { width: 62%; margin-right: 36%; }
+.proof .ws[data-bare] .ws__stack { width: 54%; margin-right: 40%; }
+.proof .ws__label { bottom: 6%; }
 
 /* ---------- Header and hero at in-between sizes ---------- */
 @media (max-width: 1180px) {
@@ -465,7 +468,6 @@ button { font: inherit; color: inherit; }
 }
 @media (max-width: 960px) {
   .hero__body { grid-template-columns: 1fr; align-items: start; }
-  .hero__pitch { font-size: clamp(28px, 6.4vw, 56px); }
   .hero__intro { max-width: 46ch; }
   .proof { grid-template-columns: 1fr; }
   .proof__stack { aspect-ratio: 16 / 11; max-width: 680px; width: 100%; justify-self: center; }
@@ -473,8 +475,7 @@ button { font: inherit; color: inherit; }
 @media (max-width: 759px) {
   .hero { padding-top: 84px; row-gap: 20px; }
   .hero__mark { height: clamp(64px, 20vw, 120px); }
-  .hero__pitch { font-size: clamp(24px, 7.4vw, 40px); }
-  .hero__line > span { white-space: normal; }
+  .hero__line { font-size: min(5.6cqi, 44px); }
   .proof__point { grid-template-columns: 1fr; gap: 4px; }
   .header__nav a[href='/#about'] { display: none; }
   .header__nav .magnetic:has(a[href='/#about']) { display: none; }
