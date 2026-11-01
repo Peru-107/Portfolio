@@ -17,10 +17,8 @@ const INKS: [number, number, number][] = [
 
 type Layout = 'hero' | 'center' | 'wordmark'
 type Box = { x: number; y: number; w: number; h: number }
-/** A typed letter printed in ink: position and size in CSS pixels, a = how solid it still is */
-type Glyph = { ch: string; x: number; y: number; size: number; born: number; a: number }
 
-function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layout: Layout, box?: Box | null, extras: Glyph[] = []) {
+function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layout: Layout, box?: Box | null) {
   // A word has small counters (the slit in the e): draw it sharp and full size
   // drawn at the screen's real pixel density (up to 2x) so edges stay crisp on high-DPI displays
   const scale = layout === 'wordmark' ? Math.min(window.devicePixelRatio || 1, 2) : 0.5
@@ -55,11 +53,6 @@ function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layo
   ctx.fillStyle = '#fff'
   ctx.filter = layout === 'wordmark' ? `blur(${0.5 * scale}px)` : 'blur(2px)'
   ctx.fillText(text, x, y)
-  for (const g of extras) {
-    ctx.font = `800 ${g.size * scale}px Panchang, "Arial Black", sans-serif`
-    ctx.fillStyle = `rgba(255,255,255,${g.a})`
-    ctx.fillText(g.ch, g.x * scale, g.y * scale)
-  }
   ctx.filter = 'none'
 }
 
@@ -139,48 +132,29 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       f.burst(x, y)
     }
     const up = () => (f.pressed = false)
-    // Type, and the letter is printed in ink somewhere on the paper; it holds
-    // for a moment, then dissolves into smoke. Other keys splash the name.
-    const glyphs: Glyph[] = []
     let played = false
     const firstPlay = () => {
       if (played) return
       played = true
       window.dispatchEvent(new Event('ink:played'))
     }
-    const key = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null
-      if (e.metaKey || e.ctrlKey || e.altKey || t?.closest('input, textarea, [contenteditable]')) return
+    // The typewriter tells the ink where each key struck (viewport pixels):
+    // a small splash for a new letter, a softer puff when one is lifted off
+    const drop = (e: Event) => {
+      const d = (e as CustomEvent<{ x: number; y: number; puff?: boolean }>).detail
       const r = c.getBoundingClientRect()
-      if (r.bottom < 0 || r.top > innerHeight) return
+      const nx = (d.x - r.left) / r.width
+      const ny = 1 - (d.y - r.top) / r.height
+      if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return
       firstPlay()
-      if (e.key.length !== 1 || e.key === ' ') {
-        f.splash()
-        return
-      }
-      const W = c.clientWidth
-      const H = c.clientHeight
-      const size = Math.max(80, Math.min(260, Math.min(W, H) * 0.24))
-      const b = box()
-      // Keep clear of the name: above it or below it, whichever has room
-      const above = b ? b.y : H * 0.4
-      const below = b ? H - (b.y + b.h) : H * 0.4
-      const useAbove = above > below ? Math.random() < 0.7 : Math.random() < 0.3
-      // Inside the clear middle of the screen: below the header, above the faded bottom edge
-      const yMin = useAbove ? Math.max(120, H * 0.1) + size * 0.8 : (b ? b.y + b.h : H * 0.6) + size * 0.85
-      const yMax = useAbove ? (b ? b.y : H * 0.4) - size * 0.1 : H * 0.8
-      const y = yMin + Math.random() * Math.max(0, yMax - yMin)
-      const x = W * 0.06 + Math.random() * (W * 0.88 - size * 0.9)
-      glyphs.push({ ch: e.key, x, y, size, born: performance.now(), a: 0 })
-      if (glyphs.length > 8) glyphs.shift()
-      // Pour ink into it from a few points so it fills at once
-      for (let i = 0; i < 6; i++) {
-        const px = x + Math.random() * size * 0.85
-        const py = y - Math.random() * size * 0.7
+      const n = d.puff ? 3 : 5
+      for (let i = 0; i < n; i++) {
         const a = Math.random() * Math.PI * 2
-        f.feed(px / W, 1 - py / H, Math.cos(a) * 160, Math.sin(a) * 160, 1.1, 0.0035)
+        const v = d.puff ? 220 : 120
+        f.feed(nx, ny, Math.cos(a) * v, Math.sin(a) * v + (d.puff ? 140 : 0), d.puff ? 0.25 : 0.55, d.puff ? 0.003 : 0.0016)
       }
     }
+    window.addEventListener('ink:drop', drop)
 
     // On phones: tilt and the ink sloshes the way gravity pulls it
     const tilt = (e: DeviceOrientationEvent) => {
@@ -213,11 +187,13 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       const a = anchor?.current?.getBoundingClientRect() ?? r
       const t0 = performance.now()
       const run = () => {
-        const k = Math.min(1, (performance.now() - t0) / 1600)
-        const px = a.left + a.width * (0.08 + 0.84 * k)
-        const py = a.top + a.height * (0.5 + 0.3 * Math.sin(k * Math.PI * 3))
+        // Eased in and out over 2.6s, a slow S through the word: a stir, not a swipe
+        const t = Math.min(1, (performance.now() - t0) / 2600)
+        const k = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+        const px = a.left + a.width * (0.1 + 0.8 * k)
+        const py = a.top + a.height * (0.5 + 0.22 * Math.sin(k * Math.PI * 2))
         f.move((px - r.left) / r.width, 1 - (py - r.top) / r.height)
-        if (k < 1) ghostRaf = requestAnimationFrame(run)
+        if (t < 1) ghostRaf = requestAnimationFrame(run)
       }
       run()
     }, 5000)
@@ -230,23 +206,11 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     const follow = () => {
       trackRaf = requestAnimationFrame(follow)
       const b = box()
-      // Typed letters fade in fast, hold, then thin away into the smoke
-      if (glyphs.length) {
-        const now = performance.now()
-        for (const g of glyphs) {
-          const t = (now - g.born) / 1000
-          g.a = t < 0.2 ? t / 0.2 : t < 1.6 ? 1 : Math.max(0, 1 - (t - 1.6) / 0.9)
-        }
-        while (glyphs.length && glyphs[0]!.a === 0 && now - glyphs[0]!.born > 1000) glyphs.shift()
-        drawMask(mask, c.clientWidth, c.clientHeight, text, layout, b, glyphs)
-        f.maskChanged()
-        if (!glyphs.length) drawMask(mask, c.clientWidth, c.clientHeight, text, layout, b)
-      }
       if (!b || !lastBox) return
       if (Math.abs(b.y - lastBox.y) + Math.abs(b.h - lastBox.h) < 0.5) return
       const dy = lastBox.y + lastBox.h / 2 - (b.y + b.h / 2)
       lastBox = b
-      drawMask(mask, c.clientWidth, c.clientHeight, text, layout, b, glyphs)
+      drawMask(mask, c.clientWidth, c.clientHeight, text, layout, b)
       f.maskChanged()
       f.scroll(dy)
     }
@@ -255,7 +219,6 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     window.addEventListener('pointermove', touched, { passive: true })
     c.addEventListener('pointerdown', down)
     window.addEventListener('pointerup', up)
-    window.addEventListener('keydown', key)
     return () => {
       ro.disconnect()
       io.disconnect()
@@ -263,7 +226,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       window.removeEventListener('pointermove', touched)
       c.removeEventListener('pointerdown', down)
       window.removeEventListener('pointerup', up)
-      window.removeEventListener('keydown', key)
+      window.removeEventListener('ink:drop', drop)
       window.clearInterval(ghost)
       window.clearInterval(tiltTimer)
       window.removeEventListener('deviceorientation', tilt)

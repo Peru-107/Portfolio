@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { InkP } from '../hero/InkP'
+import { Typewriter } from '../hero/Typewriter'
 import { site } from '../content'
 import { gsap, scrollToId } from '../lib/motion'
 
@@ -23,7 +24,7 @@ export function Hero({ ready }: { ready: boolean }) {
     }
     window.addEventListener('ink:played', onPlay)
     const t = window.setTimeout(() => {
-      if (!found && scrollY < 40) setHint(touch ? 'Tilt your phone.' : 'Type something.')
+      if (!found && scrollY < 40) setHint(touch ? 'Tilt your phone.' : 'Type something. It stays.')
     }, 4500)
     return () => {
       window.clearTimeout(t)
@@ -46,6 +47,7 @@ export function Hero({ ready }: { ready: boolean }) {
         scrollTrigger: { trigger: root.current, start: 'top top', end: '+=200%', pin: true, scrub: true, invalidateOnRefresh: true },
       })
       tl.to(stage.current, { y: () => lift(), scale, duration: 1 })
+        .to('.tw', { autoAlpha: 0, y: -40, duration: 0.3 }, 0)
         .from('.pitch__line > span', { yPercent: 110, duration: 0.6, stagger: 0.12, ease: 'power3.out' }, 0.35)
         .from('.pitch__meta > *', { autoAlpha: 0, y: 24, duration: 0.5, stagger: 0.08, ease: 'power3.out' }, 0.75)
         .to({}, { duration: 0.1 }) // a brief settle before the page moves on
@@ -63,6 +65,7 @@ export function Hero({ ready }: { ready: boolean }) {
         <div ref={mark} className="hero__mark" aria-hidden="true" />
       </div>
       <h1 className="sr-only">{site.fullName}</h1>
+      <Typewriter onWrite={() => setHint(null)} />
       <p className="hero__hint" data-on={hint ? '' : undefined} aria-hidden="true">{hint}</p>
       <div className="hero__pitch">
         <div className="pitch__copy">

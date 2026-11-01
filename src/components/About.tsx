@@ -34,7 +34,6 @@ export function About() {
         ))}
       </dl>
       <p className="about__rest">{rest}</p>
-      <p className="about__now"><i aria-hidden="true" />{site.now}</p>
       <div className="about__tools">
         {site.tools.map((t) => (
           <div key={t.group} className="about__group">

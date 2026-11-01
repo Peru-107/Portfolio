@@ -469,3 +469,30 @@ button { font: inherit; color: inherit; }
 /* The one-line hint on the first screen: quiet, and gone once found */
 .hero__hint { position: absolute; left: 50%; bottom: clamp(28px, 6vh, 56px); transform: translate(-50%, 8px); font-size: var(--fs-caption); font-weight: 500; color: var(--ink-soft); opacity: 0; transition: opacity 0.8s, transform 0.8s var(--ease-out); pointer-events: none; z-index: 2; }
 .hero__hint[data-on] { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Write in ink: the typewriter under the name ---------- */
+.tw {
+  position: absolute; left: var(--gutter); right: var(--gutter); z-index: 2;
+  top: calc(50% + clamp(90px, min(20vw, 30vh), 320px) / 2 + clamp(20px, 4vh, 48px));
+  display: grid; justify-items: center; gap: 18px; pointer-events: none;
+}
+.tw__paper { min-height: 1em; text-align: center; font-family: 'Courier Prime', 'Courier New', monospace; font-size: clamp(20px, 2vw, 30px); line-height: 1.35; color: var(--ink); }
+.tw__line { white-space: pre; }
+.tw__ch { display: inline-block; animation: strike 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.4) both; }
+@keyframes strike { from { transform: translateY(-0.35em) scale(1.25); filter: blur(2px); opacity: 0; } }
+.tw__caret { display: inline-block; width: 0.55em; height: 0.12em; margin-left: 1px; background: var(--magma); vertical-align: -0.1em; animation: caret 1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.tw__actions { display: flex; gap: 8px; opacity: 0; transform: translateY(6px); transition: opacity 0.4s, transform 0.5s var(--ease-out); }
+.tw__actions[data-on] { opacity: 1; transform: none; pointer-events: auto; }
+.tw__btn { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 0; background: var(--ink); color: var(--paper); font-family: var(--ui); font-size: var(--fs-caption); font-weight: 600; cursor: pointer; transition: background-color 0.25s, color 0.25s; }
+.tw__btn:hover { background: var(--magma); color: var(--ink); }
+.tw__btn--quiet { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+.tw__btn--quiet:hover { background: transparent; color: var(--ink); }
+.tw__write { pointer-events: auto; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(33, 37, 41, 0.25); background: rgba(233, 236, 239, 0.7); font-family: var(--ui); font-size: var(--fs-caption); font-weight: 600; color: var(--ink); }
+.tw__write[data-hidden] { display: none; }
+.tw__field { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+@media (max-width: 759px) {
+  .tw { top: calc(50% + clamp(64px, 20vw, 120px) / 2 + 24px); }
+  .tw__paper { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .tw__ch { animation: none; } }
