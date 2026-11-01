@@ -31,9 +31,13 @@ const WARM = () =>
     ? ['/media/cube-phone-400.webp', '/media/nextup-poster-400.webp', '/media/folio-today-400.webp', '/media/tv-home-800.webp', '/media/by-1-400.webp']
     : ['/media/cube-poster-800.webp', '/media/nextup-card-800.webp', '/media/folio-room-400.webp', '/media/tv-home-800.webp', '/media/by-1-400.webp']
 
+// Fetched and decoded while the loader plays, so the first scroll to the work
+// deck never waits on an image (the loader's time is spent getting ready)
 function loadImage(src: string) {
   const img = new Image()
+  img.decoding = 'async'
   img.src = src
+  img.decode?.().catch(() => {})
 }
 
 export function Preloader({ onDone }: { onDone: () => void }) {
@@ -58,10 +62,8 @@ export function Preloader({ onDone }: { onDone: () => void }) {
       // Tell the ink to start as this exact solid word, then let the page go
       ;(window as unknown as { __inkHandoff?: boolean }).__inkHandoff = true
       onDone()
-      const warm = () => WARM().forEach(loadImage)
-      if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 3000 })
-      else setTimeout(warm, 1500)
     }
+    WARM().forEach(loadImage)
 
     const c = canvas.current!
     const ctx = c.getContext('2d')!
