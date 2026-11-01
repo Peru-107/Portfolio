@@ -37,7 +37,7 @@ export function Work() {
 
       const tl = gsap.timeline({
         defaults: { ease: 'power2.inOut' },
-        scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, pin: true, scrub: 0.8, invalidateOnRefresh: true, anticipatePin: 1 },
+        scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, pin: true, scrub: true, invalidateOnRefresh: true },
       })
       // Dealt: each card flies to its place in a flat row
       cards.forEach((c, i) => {

@@ -42,7 +42,7 @@ export function Hero({ ready }: { ready: boolean }) {
       }
       const tl = gsap.timeline({
         defaults: { ease: 'power2.inOut' },
-        scrollTrigger: { trigger: root.current, start: 'top top', end: '+=200%', pin: true, scrub: 0.9, invalidateOnRefresh: true, anticipatePin: 1 },
+        scrollTrigger: { trigger: root.current, start: 'top top', end: '+=200%', pin: true, scrub: true, invalidateOnRefresh: true },
       })
       tl.to(stage.current, { y: () => lift(), scale, duration: 1 })
         .from('.pitch__line > span', { yPercent: 110, duration: 0.6, stagger: 0.12, ease: 'power3.out' }, 0.35)
