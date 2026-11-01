@@ -9,6 +9,7 @@ import { About } from './components/About'
 import { Experience } from './components/Experience'
 import { Contact } from './components/Contact'
 import { Case } from './components/Case'
+import { Preview } from './preview/Preview'
 import { setTransition, usePath } from './lib/router'
 import { gsap, reduced, scrollTop, ScrollTrigger, startScroll } from './lib/motion'
 import { site } from './content'
@@ -56,7 +57,9 @@ export default function App() {
       <Cursor />
       <Header />
       <div id="main">
-        {slug ? (
+        {path.replace(/\/$/, '') === '/preview' ? (
+          <Preview />
+        ) : slug ? (
           <Case key={slug} slug={slug} />
         ) : (
           <main>

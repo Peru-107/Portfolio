@@ -483,3 +483,45 @@ button { font: inherit; color: inherit; }
   .hero__copy { padding: 24px 0; }
 }
 .case__outcome-lead { margin-top: 28px; max-width: 52ch; font-size: clamp(20px, 1.6vw, 24px); line-height: 1.45; color: var(--ink); }
+
+/* ---------- /preview: two homepage directions (private) ---------- */
+.pv { position: relative; min-height: 100svh; overflow: hidden; padding: clamp(104px, 15vh, 150px) var(--gutter) clamp(28px, 5vh, 48px); font-family: var(--ui); font-size: 15px; line-height: 1.6; }
+.pv + .pv { border-top: 1px solid rgba(33, 37, 41, 0.12); }
+.pv__tag { position: absolute; right: var(--gutter); bottom: 18px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--magma); z-index: 2; }
+.pv__h { font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+.pv__dim { color: var(--ink-soft); }
+.pv__num { display: inline-block; width: 2.4em; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.pv__link { display: block; width: fit-content; color: var(--ink); background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size 0.4s var(--ease-out); }
+.pv__link:hover { background-size: 100% 1px; }
+
+/* A: CV as quiet columns, one line, the ink name along the bottom edge */
+.pv--a { display: grid; grid-template-rows: auto 1fr auto; }
+.pv--a .ink-canvas { position: absolute; inset: 0; }
+.pva__cols { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; color: var(--ink-2); }
+.pva__line { position: relative; align-self: center; max-width: 30ch; font-family: var(--text); font-size: clamp(22px, 2vw, 32px); line-height: 1.35; color: var(--ink); }
+.pva__mark { position: relative; height: clamp(90px, 21vw, 340px); pointer-events: none; }
+
+/* B: the work as a single object in a lot of space */
+.pv--b { display: grid; grid-template-columns: 1fr minmax(0, 1.4fr) 1fr; grid-template-rows: 1fr auto; gap: 40px; align-items: end; }
+.pvb__object { grid-column: 2; grid-row: 1; align-self: center; position: relative; aspect-ratio: 16 / 11; }
+.pvb__object .ws { background: none; }
+.pvb__object .ws__stack { width: 56%; margin-right: 38%; }
+.pvb__caption { position: absolute; left: 0; right: 0; bottom: -8px; text-align: center; color: var(--ink-soft); font-size: 14px; }
+.pvb__line { grid-column: 1; grid-row: 2; display: grid; font-family: var(--display); font-weight: 700; font-size: clamp(16px, 1.5vw, 22px); line-height: 1.15; letter-spacing: -0.01em; }
+.pvb__line span:last-child { color: var(--magma); }
+.pvb__index { grid-column: 3; grid-row: 2; justify-self: end; text-align: right; }
+.pvb__index li a { white-space: pre; color: var(--ink-soft); transition: color 0.3s; }
+.pvb__index li[data-on] a { color: var(--ink); }
+.pvb__meta { grid-column: 2; grid-row: 2; text-align: center; color: var(--ink-soft); }
+
+@media (max-width: 900px) {
+  .pva__cols { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 28px; }
+  .pv--b { grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; }
+  .pvb__object, .pvb__line, .pvb__index, .pvb__meta { grid-column: 1; grid-row: auto; }
+  .pvb__index { justify-self: start; text-align: left; }
+  .pvb__meta { text-align: left; }
+}
+@media (max-width: 759px) {
+  .pva__cols { grid-template-columns: 1fr 1fr; gap: 24px 16px; font-size: 14px; }
+  .pva__line { margin: 40px 0; }
+}
