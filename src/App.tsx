@@ -3,13 +3,12 @@ import { Cursor } from './components/Cursor'
 import { Preloader } from './components/Preloader'
 import { Header } from './components/Header'
 import { Hero } from './components/Hero'
-import { Manifesto } from './components/Manifesto'
+import { WorkIndex } from './components/WorkIndex'
 import { Work } from './components/Work'
 import { About } from './components/About'
 import { Experience } from './components/Experience'
 import { Contact } from './components/Contact'
 import { Case } from './components/Case'
-import { Lab } from './lab/Lab'
 import { setTransition, usePath } from './lib/router'
 import { gsap, reduced, scrollTop, ScrollTrigger, startScroll } from './lib/motion'
 import { site } from './content'
@@ -57,14 +56,12 @@ export default function App() {
       <Cursor />
       <Header />
       <div id="main">
-        {path.replace(/\/$/, '') === '/lab' ? (
-          <Lab />
-        ) : slug ? (
+        {slug ? (
           <Case key={slug} slug={slug} />
         ) : (
           <main>
             <Hero ready={ready} />
-            <Manifesto />
+            <WorkIndex />
             <Work />
             <About />
             <Experience />

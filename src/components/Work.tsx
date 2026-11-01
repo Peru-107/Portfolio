@@ -36,12 +36,8 @@ export function Work() {
   }, [])
 
   return (
-    <section ref={root} id="work" className="work" aria-labelledby="work-title">
+    <section ref={root} className="work" aria-label="Projects in detail">
       <div ref={track} className="work__track">
-        <header className="work__intro">
-          <h2 id="work-title" className="work__title">Things I’ve built</h2>
-          <p className="work__lede">Five of my own products from this year. I designed each one and wrote the code.</p>
-        </header>
         {projects.map((p) => (
           <article key={p.slug} className="wp">
             <a className="wp__stage" {...linkProps(`/work/${p.slug}`)} data-cursor="Open" aria-label={`${p.title} case study`}>
