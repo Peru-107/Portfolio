@@ -472,6 +472,4 @@ button { font: inherit; color: inherit; }
   .hero__mark { height: clamp(70px, 17vh, 130px); margin-bottom: clamp(28px, 6vh, 56px); }
   .hero__stack { height: clamp(200px, 34vh, 280px); }
 }
-.header__cv { border: 1px solid currentColor; border-radius: 999px; margin-left: 6px; padding: 6px 14px !important; }
-.header__cv::after { display: none; }
 .case__outcome-lead { margin-top: 28px; max-width: 52ch; font-size: clamp(20px, 1.6vw, 24px); line-height: 1.45; color: var(--ink); }
