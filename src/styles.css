@@ -488,7 +488,7 @@ button { font: inherit; color: inherit; }
 .tw__btn:hover { background: var(--magma); color: var(--ink); }
 .tw__btn--quiet { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
 .tw__btn--quiet:hover { background: transparent; color: var(--ink); }
-.tw__write { pointer-events: auto; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(33, 37, 41, 0.25); background: rgba(233, 236, 239, 0.7); font-family: var(--ui); font-size: var(--fs-caption); font-weight: 600; color: var(--ink); }
+.tw__write { pointer-events: auto; min-height: 44px; padding: 0 12px; border: 0; background: none; text-decoration: underline; text-underline-offset: 5px; text-decoration-color: var(--magma); font-family: var(--ui); font-size: var(--fs-caption); font-weight: 600; color: var(--ink); }
 .tw__write[data-hidden] { display: none; }
 .tw__field { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 @media (max-width: 759px) {
