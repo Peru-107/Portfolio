@@ -1,0 +1,38 @@
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
+
+gsap.registerPlugin(ScrollTrigger)
+
+export const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches
+
+let lenis: Lenis | null = null
+
+// Lenis driven from GSAP's ticker, so ScrollTrigger never reads a stale scroll
+export function startScroll() {
+  if (lenis || reduced()) return
+  lenis = new Lenis({ duration: 1.15, smoothWheel: true })
+  lenis.on('scroll', ScrollTrigger.update)
+  gsap.ticker.add((t) => lenis?.raf(t * 1000))
+  gsap.ticker.lagSmoothing(0)
+}
+
+export function scrollTop() {
+  if (lenis) lenis.scrollTo(0, { immediate: true })
+  else window.scrollTo(0, 0)
+}
+
+export function scrollToId(id: string) {
+  const el = document.getElementById(id)
+  if (!el) return
+  if (lenis) lenis.scrollTo(el, { offset: 0, duration: 1.4 })
+  else el.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth' })
+}
+
+export function lockScroll(on: boolean) {
+  if (on) lenis?.stop()
+  else lenis?.start()
+  document.documentElement.style.overflow = on ? 'hidden' : ''
+}
+
+export { gsap, ScrollTrigger }
