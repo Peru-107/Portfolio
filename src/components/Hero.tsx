@@ -3,12 +3,10 @@ import { InkP } from '../hero/InkP'
 import { site } from '../content'
 import { gsap, scrollToId } from '../lib/motion'
 
-// One screen that changes in place. First only my name in live ink; as you
-// scroll, the screen holds still while the name glides up and settles near
-// the top, and what I do slides in beneath it. Then the page moves on.
+// The first screen is only my name in live ink. Below it, what I do: the
+// headline rises line by line as it comes into view. Plain scrolling, no pins.
 export function Hero({ ready }: { ready: boolean }) {
-  const root = useRef<HTMLElement>(null)
-  const stage = useRef<HTMLDivElement>(null)
+  const pitch = useRef<HTMLElement>(null)
   const mark = useRef<HTMLDivElement>(null)
   // A one-line hint, shown only if nobody has found the trick after a few seconds
   const [hint, setHint] = useState<string | null>(null)
@@ -32,38 +30,29 @@ export function Hero({ ready }: { ready: boolean }) {
   }, [ready])
 
   useEffect(() => {
-    const mm = gsap.matchMedia()
-    mm.add('(prefers-reduced-motion: no-preference)', () => {
-      // Where the name ends up: at 60% size, its top edge clear of the header
-      const scale = 0.6
-      const lift = () => {
-        const top = mark.current!.offsetTop
-        return Math.max(innerHeight * 0.13, 96) - top * scale
-      }
-      const tl = gsap.timeline({
-        defaults: { ease: 'power2.inOut' },
-        scrollTrigger: { trigger: root.current, start: 'top top', end: '+=200%', pin: true, scrub: true, invalidateOnRefresh: true },
-      })
-      tl.to(stage.current, { y: () => lift(), scale, duration: 1 })
-        .from('.pitch__line > span', { yPercent: 110, duration: 0.6, stagger: 0.12, ease: 'power3.out' }, 0.35)
-        .from('.pitch__meta > *', { autoAlpha: 0, y: 24, duration: 0.5, stagger: 0.08, ease: 'power3.out' }, 0.75)
-        .to({}, { duration: 0.25 }) // a short hold before the page moves on
-    })
-    return () => mm.revert()
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const ctx = gsap.context(() => {
+      gsap.from('.pitch__line > span', { yPercent: 110, duration: 1.1, ease: 'power4.out', stagger: 0.1, scrollTrigger: { trigger: '.pitch__title', start: 'top 82%' } })
+      gsap.from('.pitch__meta > *', { autoAlpha: 0, y: 18, duration: 0.9, ease: 'power3.out', stagger: 0.08, scrollTrigger: { trigger: '.pitch__meta', start: 'top 92%' } })
+    }, pitch)
+    return () => ctx.revert()
   }, [])
 
   const lines = ['I design products,', 'build them myself,', 'and know their worth.']
 
   return (
-    <section ref={root} id="top" className="hero">
-      {/* The ink fills the whole screen and never moves; only the word's shape inside it does */}
-      <InkP play={ready} text={site.name} layout="wordmark" anchor={mark} track />
-      <div ref={stage} className="hero__stage">
-        <div ref={mark} className="hero__mark" aria-hidden="true" />
-      </div>
-      <h1 className="sr-only">{site.fullName}</h1>
-      <p className="hero__hint" data-on={hint ? '' : undefined} aria-hidden="true">{hint}</p>
-      <div className="hero__pitch">
+    <>
+      <section id="top" className="hero">
+        {/* The ink fills the whole screen; only the word's shape inside it moves */}
+        <InkP play={ready} text={site.name} layout="wordmark" anchor={mark} track />
+        <div className="hero__stage">
+          <div ref={mark} className="hero__mark" aria-hidden="true" />
+        </div>
+        <h1 className="sr-only">{site.fullName}</h1>
+        <p className="hero__hint" data-on={hint ? '' : undefined} aria-hidden="true">{hint}</p>
+      </section>
+
+      <section ref={pitch} className="pitch" aria-label="What I do">
         <div className="pitch__copy">
           <p className="pitch__title" aria-label={site.pitch}>
             {lines.map((l) => (
@@ -75,7 +64,7 @@ export function Hero({ ready }: { ready: boolean }) {
           <p className="pitch__status"><i aria-hidden="true" />{site.status}</p>
           <a href="#work" className="pitch__link" onClick={(e) => (e.preventDefault(), scrollToId('work'))}>See what I’ve built</a>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   )
 }

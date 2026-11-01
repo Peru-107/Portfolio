@@ -4,50 +4,45 @@ import { gsap } from '../lib/motion'
 import { linkProps } from '../lib/router'
 import { Media } from './Media'
 
-// The work as one object that changes with the scroll: the projects start
-// stacked in depth, deal out into a row, then the row slides past. Each
-// project appears once. Phones and reduced motion get a plain vertical list.
+// The work as a plain grid that scrolls normally. As it comes into view the
+// cards fly out of a stack into their places, once. No pinning.
 export function Work() {
   const root = useRef<HTMLElement>(null)
-  const row = useRef<HTMLDivElement>(null)
+  const grid = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const mm = gsap.matchMedia()
-    mm.add('(min-width: 960px) and (prefers-reduced-motion: no-preference)', () => {
-      const r = row.current!
-      const cards = gsap.utils.toArray<HTMLElement>('.w2__card', r)
-      const caps = gsap.utils.toArray<HTMLElement>('.w2__cap', r)
-      const cardW = () => cards[0]!.offsetWidth
-      const gap = () => innerWidth * 0.04
-      const start = () => innerWidth * 0.06
-      const slot = (i: number) => start() + i * (cardW() + gap())
-      const travel = () => Math.max(0, slot(cards.length - 1) + cardW() + start() - innerWidth)
-      const length = () => innerHeight * 1.2 + travel()
-
-      // Stacked: on the right, each card further back and turned away
-      gsap.set(cards, {
-        x: (i) => innerWidth * 0.46 + i * 46,
-        y: (i) => i * -16,
-        z: (i) => i * -90,
-        rotationY: -26,
+    mm.add('(min-width: 760px) and (prefers-reduced-motion: no-preference)', () => {
+      const g = grid.current!
+      const cards = gsap.utils.toArray<HTMLElement>('.w2__card', g)
+      // Each card starts in a loose 3D stack at the centre-top of the grid
+      const from = (c: HTMLElement, i: number) => {
+        const gr = g.getBoundingClientRect()
+        const cr = c.getBoundingClientRect()
+        return {
+          x: gr.left + gr.width / 2 - (cr.left + cr.width / 2) + i * 18,
+          y: gr.top + Math.min(cr.height, 320) / 2 - (cr.top + cr.height / 2) - i * 10,
+        }
+      }
+      const tween = gsap.from(cards, {
+        x: (i: number, c: HTMLElement) => from(c, i).x,
+        y: (i: number, c: HTMLElement) => from(c, i).y,
+        rotationY: -24,
         rotationX: 10,
-        zIndex: (i) => cards.length - i,
+        scale: 0.7,
+        zIndex: (i: number) => cards.length - i,
+        duration: 1.3,
+        ease: 'expo.out',
+        stagger: 0.09,
+        scrollTrigger: { trigger: g, start: 'top 75%', once: true },
       })
-      gsap.set(caps, { autoAlpha: 0, y: 10 })
-
-      const tl = gsap.timeline({
-        defaults: { ease: 'power2.inOut' },
-        scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, pin: true, scrub: true, invalidateOnRefresh: true },
-      })
-      // Dealt: each card flies to its place in a flat row
-      cards.forEach((c, i) => {
-        tl.to(c, { x: () => slot(i), y: 0, z: 0, rotationY: 0, rotationX: 0, duration: 1 }, i * 0.08)
-      })
-      tl.to(caps, { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.4, ease: 'power2.out' }, 0.75)
-      // Then the whole row slides past, at the same pace the page scrolls
-      tl.to(r, { x: () => -travel(), ease: 'none', duration: 0.6 + (travel() / innerWidth) * 1.4 }, '+=0.15')
-
-      gsap.to('.w2__bar i', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, scrub: true, invalidateOnRefresh: true } })
+      gsap.from('.w2__cap', { autoAlpha: 0, y: 12, duration: 0.7, stagger: 0.09, delay: 0.5, ease: 'power3.out', scrollTrigger: { trigger: g, start: 'top 75%', once: true } })
+      return () => tween.scrollTrigger?.kill()
+    })
+    mm.add('(max-width: 759px) and (prefers-reduced-motion: no-preference)', () => {
+      gsap.utils.toArray<HTMLElement>('.w2__card').forEach((c) =>
+        gsap.from(c, { y: 50, autoAlpha: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: c, start: 'top 88%' } }),
+      )
     })
     return () => mm.revert()
   }, [])
@@ -57,7 +52,7 @@ export function Work() {
       <header className="w2__head">
         <h2 id="work-title" className="w2__title">Things I’ve <span className="accent">built.</span></h2>
       </header>
-      <div ref={row} className="w2__row">
+      <div ref={grid} className="w2__grid">
         {projects.map((p) => (
           <a key={p.slug} className="w2__card" {...linkProps(`/work/${p.slug}`)} data-cursor="Open" aria-label={`${p.title}, ${p.kind}. Open case study`}>
             <div className="w2__media"><Media m={p.cover} /></div>
@@ -79,7 +74,6 @@ export function Work() {
           </div>
         </aside>
       </div>
-      <div className="w2__bar" aria-hidden="true"><i /></div>
     </section>
   )
 }
