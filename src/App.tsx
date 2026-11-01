@@ -3,7 +3,6 @@ import { Cursor } from './components/Cursor'
 import { Preloader } from './components/Preloader'
 import { Header } from './components/Header'
 import { Hero } from './components/Hero'
-import { WorkIndex } from './components/WorkIndex'
 import { Work } from './components/Work'
 import { About } from './components/About'
 import { Experience } from './components/Experience'
@@ -61,7 +60,6 @@ export default function App() {
         ) : (
           <main>
             <Hero ready={ready} />
-            <WorkIndex />
             <Work />
             <About />
             <Experience />

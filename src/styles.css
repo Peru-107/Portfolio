@@ -483,3 +483,32 @@ button { font: inherit; color: inherit; }
   .hero__copy { padding: 24px 0; }
 }
 .case__outcome-lead { margin-top: 28px; max-width: 52ch; font-size: clamp(20px, 1.6vw, 24px); line-height: 1.45; color: var(--ink); }
+
+/* ---------- Work: the stack that becomes a row ---------- */
+.w2 { position: relative; height: 100svh; min-height: 640px; overflow: hidden; padding: clamp(96px, 13vh, 130px) 0 0; }
+.w2__head { padding: 0 var(--gutter); display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+.w2__title { font-family: var(--display); font-weight: 800; font-size: clamp(36px, 4.4vw, 72px); line-height: 0.98; letter-spacing: -0.03em; }
+.w2__lede { max-width: 34ch; color: var(--ink-2); }
+.w2__row { position: absolute; left: 0; top: clamp(220px, 32vh, 300px); height: min(46vh, 520px); width: 100%; perspective: 1600px; transform-style: preserve-3d; }
+.w2__card { position: absolute; left: 0; top: 0; height: 100%; aspect-ratio: 16 / 9; display: block; will-change: transform; }
+.w2__media { width: 100%; height: 100%; border-radius: 16px; overflow: hidden; background: var(--ink); box-shadow: 0 34px 70px -34px rgba(0, 0, 0, 0.55); }
+.w2__media > .media, .w2__media > .media > img, .w2__media .media__video { width: 100%; height: 100%; max-height: none; border-radius: 0; box-shadow: none; border: 0; object-fit: cover; object-position: center top; }
+.w2__card--teaser .teaser { min-height: 0; height: 100%; border-radius: 16px; }
+.w2__cap { position: absolute; left: 0; top: calc(100% + 18px); display: grid; gap: 2px; }
+.w2__kind { font-family: var(--ui); font-size: 14px; color: var(--ink-soft); }
+.w2__name { font-family: var(--display); font-weight: 700; font-size: clamp(20px, 1.8vw, 28px); letter-spacing: -0.015em; white-space: nowrap; transition: color 0.3s; }
+.w2__card:hover .w2__name { color: var(--magma); }
+.w2__bar { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 28px; height: 2px; background: rgba(33, 37, 41, 0.12); }
+.w2__bar i { display: block; height: 100%; background: var(--ink); transform: scaleX(0); transform-origin: left; }
+
+/* Phones, tablets and reduced motion: a plain list, nothing pinned */
+@media (max-width: 959px), (prefers-reduced-motion: reduce) {
+  .w2 { height: auto; min-height: 0; padding: clamp(96px, 14vh, 140px) var(--gutter) 40px; }
+  .w2__head { padding: 0; flex-direction: column; }
+  .w2__row { position: static; height: auto; display: grid; gap: 72px; margin-top: 48px; perspective: none; }
+  .w2__card { position: relative; height: auto; width: 100%; aspect-ratio: auto; }
+  .w2__media { aspect-ratio: 16 / 9; height: auto; }
+  .w2__cap { position: static; margin-top: 14px; }
+  .w2__name { white-space: normal; }
+  .w2__bar { display: none; }
+}

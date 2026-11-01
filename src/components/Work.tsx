@@ -1,69 +1,86 @@
 import { useEffect, useRef } from 'react'
 import { projects, site } from '../content'
-import { gsap, reduced } from '../lib/motion'
+import { gsap } from '../lib/motion'
 import { linkProps } from '../lib/router'
 import { Media } from './Media'
 
-// Pinned on wide screens: vertical scroll drives a horizontal run of
-// projects. Stacked on narrow screens.
+// The work as one object that changes with the scroll: the projects start
+// stacked in depth, deal out into a row, then the row slides past. Each
+// project appears once. Phones and reduced motion get a plain vertical list.
 export function Work() {
   const root = useRef<HTMLElement>(null)
-  const track = useRef<HTMLDivElement>(null)
+  const row = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const mm = gsap.matchMedia()
     mm.add('(min-width: 960px) and (prefers-reduced-motion: no-preference)', () => {
-      const t = track.current!
-      const dist = () => t.scrollWidth - window.innerWidth
-      const tween = gsap.to(t, {
-        x: () => -dist(),
-        ease: 'none',
-        scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${dist()}`, pin: true, scrub: 0.8, invalidateOnRefresh: true, anticipatePin: 1 },
+      const r = row.current!
+      const cards = gsap.utils.toArray<HTMLElement>('.w2__card', r)
+      const caps = gsap.utils.toArray<HTMLElement>('.w2__cap', r)
+      const cardW = () => cards[0]!.offsetWidth
+      const gap = () => innerWidth * 0.04
+      const start = () => innerWidth * 0.06
+      const slot = (i: number) => start() + i * (cardW() + gap())
+      const travel = () => Math.max(0, slot(cards.length - 1) + cardW() + start() - innerWidth)
+      const length = () => innerHeight * 1.2 + travel()
+
+      // Stacked: on the right, each card further back and turned away
+      gsap.set(cards, {
+        x: (i) => innerWidth * 0.46 + i * 46,
+        y: (i) => i * -16,
+        z: (i) => i * -90,
+        rotationY: -26,
+        rotationX: 10,
+        zIndex: (i) => cards.length - i,
       })
-      gsap.to('.work__bar i', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${dist()}`, scrub: true, invalidateOnRefresh: true } })
-      t.querySelectorAll<HTMLElement>('.wp').forEach((p) => {
-        gsap.from(p.querySelector('.wp__stage'), { scale: 0.9, rotate: 1.5, autoAlpha: 0.4, ease: 'none', scrollTrigger: { trigger: p, containerAnimation: tween, start: 'left 95%', end: 'left 40%', scrub: true } })
+      gsap.set(caps, { autoAlpha: 0, y: 10 })
+
+      const tl = gsap.timeline({
+        defaults: { ease: 'power2.inOut' },
+        scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, pin: true, scrub: 0.8, invalidateOnRefresh: true, anticipatePin: 1 },
       })
+      // Dealt: each card flies to its place in a flat row
+      cards.forEach((c, i) => {
+        tl.to(c, { x: () => slot(i), y: 0, z: 0, rotationY: 0, rotationX: 0, duration: 1 }, i * 0.08)
+      })
+      tl.to(caps, { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.4, ease: 'power2.out' }, 0.75)
+      // Then the whole row slides past, at the same pace the page scrolls
+      tl.to(r, { x: () => -travel(), ease: 'none', duration: 0.6 + (travel() / innerWidth) * 1.4 }, '+=0.15')
+
+      gsap.to('.w2__bar i', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, scrub: true, invalidateOnRefresh: true } })
     })
-    if (!reduced()) {
-      mm.add('(max-width: 959px)', () => {
-        gsap.utils.toArray<HTMLElement>('.wp').forEach((p) =>
-          gsap.from(p, { y: 60, autoAlpha: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: p, start: 'top 85%' } }),
-        )
-      })
-    }
     return () => mm.revert()
   }, [])
 
   return (
-    <section ref={root} className="work" aria-label="Projects in detail">
-      <div ref={track} className="work__track">
+    <section ref={root} id="work" className="w2" aria-labelledby="work-title">
+      <header className="w2__head">
+        <h2 id="work-title" className="w2__title">Things I’ve built</h2>
+        <p className="w2__lede">Five products this year. I designed each one and wrote the code.</p>
+      </header>
+      <div ref={row} className="w2__row">
         {projects.map((p) => (
-          <article key={p.slug} className="wp">
-            <a className="wp__stage" {...linkProps(`/work/${p.slug}`)} data-cursor="Open" aria-label={`${p.title} case study`}>
-              <Media m={p.cover} />
-            </a>
-            <div className="wp__meta">
-              <p className="wp__kind">{p.kind}, {p.year}</p>
-              <h3 className="wp__title">
-                <a {...linkProps(`/work/${p.slug}`)} data-cursor="Open">{p.title}</a>
-              </h3>
-              <p className="wp__summary">{p.summary}</p>
+          <a key={p.slug} className="w2__card" {...linkProps(`/work/${p.slug}`)} data-cursor="Open" aria-label={`${p.title}, ${p.kind}. Open case study`}>
+            <div className="w2__media"><Media m={p.cover} /></div>
+            <div className="w2__cap">
+              <p className="w2__kind">{p.kind}, {p.year}</p>
+              <p className="w2__name">{p.title}</p>
             </div>
-          </article>
+          </a>
         ))}
-        <aside className="wp wp--teaser" aria-label={`${site.teaser.title}, ${site.teaser.label.toLowerCase()}`}>
-          <div className="teaser">
+        <aside className="w2__card w2__card--teaser" aria-label={`${site.teaser.title}, ${site.teaser.label.toLowerCase()}`}>
+          <div className="w2__media teaser">
             <p className="teaser__label"><i aria-hidden="true" />{site.teaser.label}</p>
             <p className="teaser__title" aria-hidden="true">{site.teaser.title}</p>
             <p className="teaser__line">{site.teaser.line}</p>
-            <ul className="teaser__hints">
-              {site.teaser.hints.map((h) => <li key={h}>{h}</li>)}
-            </ul>
+          </div>
+          <div className="w2__cap">
+            <p className="w2__kind">In the works</p>
+            <p className="w2__name">{site.teaser.title}</p>
           </div>
         </aside>
       </div>
-      <div className="work__bar" aria-hidden="true"><i /></div>
+      <div className="w2__bar" aria-hidden="true"><i /></div>
     </section>
   )
 }
