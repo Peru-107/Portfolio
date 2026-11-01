@@ -32,9 +32,9 @@ const SPLAT = head + /* glsl */ `
 
 const ADVECT = head + /* glsl */ `
   uniform sampler2D uVelocity; uniform sampler2D uSource; uniform vec2 velTexel; uniform float dt; uniform float dissipation;
-  uniform sampler2D uMask; uniform float holdInside;
+  uniform sampler2D uMask; uniform float holdInside; uniform vec2 shift;
   void main() {
-    vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * velTexel;
+    vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * velTexel + shift;
     vec4 v = texture2D(uSource, coord);
     // Ink inside the letter dries slower than ink that escapes it
     float m = texture2D(uMask, vUv).r;
@@ -168,6 +168,14 @@ export class InkField {
   private pointer = { x: 0.5, y: 0.5, dx: 0, dy: 0, moved: false, down: false }
   private queue: { x: number; y: number; dx: number; dy: number; color: [number, number, number]; r: number }[] = []
   reveal = 0
+  /** How much ink shows outside the shapes (trails); 0.1 keeps it subtle */
+  set outside(v: number) {
+    this.mats.display!.uniforms.outside!.value = v
+  }
+  private pendingScroll = 0
+  private shiftNow: [number, number] = [0, 0]
+  private maskTouches = 0
+  pressed = false
 
   constructor(private o: InkOptions) {
     this.renderer = new THREE.WebGLRenderer({ canvas: o.canvas, antialias: false, alpha: false, powerPreference: 'high-performance' })
@@ -183,7 +191,7 @@ export class InkField {
     }
     const tex = () => ({ value: null as THREE.Texture | null })
     m('splat', SPLAT, { uTarget: tex(), aspect: { value: 1 }, color: { value: new THREE.Vector3() }, point: { value: new THREE.Vector2() }, radius: { value: 0.002 } })
-    m('advect', ADVECT, { uVelocity: tex(), uSource: tex(), velTexel: { value: new THREE.Vector2() }, dt: { value: 0.016 }, dissipation: { value: 1 }, uMask: { value: this.maskTex }, holdInside: { value: 1 } })
+    m('advect', ADVECT, { uVelocity: tex(), uSource: tex(), velTexel: { value: new THREE.Vector2() }, dt: { value: 0.016 }, dissipation: { value: 1 }, uMask: { value: this.maskTex }, holdInside: { value: 1 }, shift: { value: new THREE.Vector2() } })
     m('divergence', DIVERGENCE, { uVelocity: tex() })
     m('curl', CURL, { uVelocity: tex() })
     m('vorticity', VORTICITY, { uVelocity: tex(), uCurl: tex(), curl: { value: 16 }, dt: { value: 0.016 } })
@@ -288,6 +296,30 @@ export class InkField {
     }
   }
 
+  /** The page scrolled by dy CSS pixels: the ink travels with it, and fast scrolls smear it */
+  scroll(dy: number) {
+    this.pendingScroll += dy
+    const speed = Math.abs(dy)
+    if (speed < 3 || !this.maskPoints.length) return
+    const n = Math.min(4, Math.ceil(speed / 25))
+    for (let i = 0; i < n; i++) {
+      const p = this.maskPoints[Math.floor(Math.random() * this.maskPoints.length)]!
+      // Ink lags behind the content: push it the opposite way to the motion
+      this.queue.push({ x: p[0], y: p[1], dx: (Math.random() - 0.5) * 60, dy: -dy * 9, color: this.nextInk(Math.min(0.5, speed / 120)), r: 0.003 })
+    }
+  }
+
+  /** The mask canvas was redrawn in place (same size): upload it, and now and then re-sample it */
+  maskChanged() {
+    this.maskTex.needsUpdate = true
+    if (this.maskTouches++ % 8 === 0) this.sampleMask()
+  }
+
+  /** Ink fed at a point, along a direction: used to pour ink into a line as it draws */
+  feed(nx: number, ny: number, dx: number, dy: number, amount = 0.6, r = 0.003) {
+    this.queue.push({ x: nx, y: ny, dx, dy, color: this.nextInk(amount), r })
+  }
+
   move(nx: number, ny: number) {
     const p = this.pointer
     p.dx = nx - p.x
@@ -319,9 +351,9 @@ export class InkField {
     }
     this.pass('gradient', this.vel.write, { uPressure: this.pressure.read.texture, uVelocity: this.vel.read.texture }, sim)
     this.vel.swap()
-    this.pass('advect', this.vel.write, { uVelocity: this.vel.read.texture, uSource: this.vel.read.texture, velTexel: [1 / this.simW, 1 / this.simH], dt, dissipation: 0.25, holdInside: 1 }, sim)
+    this.pass('advect', this.vel.write, { uVelocity: this.vel.read.texture, uSource: this.vel.read.texture, velTexel: [1 / this.simW, 1 / this.simH], dt, dissipation: 0.25, holdInside: 1, shift: this.shiftNow }, sim)
     this.vel.swap()
-    this.pass('advect', this.dye.write, { uVelocity: this.vel.read.texture, uSource: this.dye.read.texture, velTexel: [1 / this.simW, 1 / this.simH], dt, dissipation: 1.4, holdInside: 0.06 }, dyeT)
+    this.pass('advect', this.dye.write, { uVelocity: this.vel.read.texture, uSource: this.dye.read.texture, velTexel: [1 / this.simW, 1 / this.simH], dt, dissipation: 1.4, holdInside: 0.06, shift: this.shiftNow }, dyeT)
     this.dye.swap()
   }
 
@@ -336,7 +368,9 @@ export class InkField {
     if (p.moved) {
       p.moved = false
       const speed = Math.hypot(p.dx, p.dy)
-      this.splat(p.x, p.y, p.dx * 2800, p.dy * 2800, this.nextInk(Math.min(0.5, 0.12 + speed * 6)), 0.0016)
+      // Pressing and dragging pulls ink out like taffy: more force, more ink, a wider stroke
+      const k = this.pressed ? 2.6 : 1
+      this.splat(p.x, p.y, p.dx * 2800 * k, p.dy * 2800 * k, this.nextInk(Math.min(0.5 * k, (0.12 + speed * 6) * k)), this.pressed ? 0.003 : 0.0016)
     }
     while (this.queue.length) {
       const q = this.queue.shift()!
@@ -350,6 +384,9 @@ export class InkField {
       this.splat(pt[0], pt[1], Math.cos(a) * 70, Math.sin(a) * 70 - 25, this.nextInk(0.9), 0.005)
     }
 
+    // Content moved since last frame: shift the whole field with it
+    this.shiftNow = [0, -this.pendingScroll / Math.max(1, this.o.canvas.clientHeight)]
+    this.pendingScroll = 0
     this.step(dt)
     this.pass('display', null, { uDye: this.dye.read.texture, uVelocity: this.vel.read.texture, dyeTexel: [1 / this.dyeW, 1 / this.dyeH], time: this.t, reveal: this.reveal }, [this.dyeW, this.dyeH])
     if (this.running) this.raf = requestAnimationFrame(this.frame)

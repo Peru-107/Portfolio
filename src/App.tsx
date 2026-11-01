@@ -8,6 +8,7 @@ import { About } from './components/About'
 import { Experience } from './components/Experience'
 import { Contact } from './components/Contact'
 import { Case } from './components/Case'
+import { InkStory } from './lab/InkStory'
 import { setTransition, usePath } from './lib/router'
 import { gsap, reduced, scrollTop, ScrollTrigger, startScroll } from './lib/motion'
 import { site } from './content'
@@ -55,7 +56,9 @@ export default function App() {
       <Cursor />
       <Header />
       <div id="main">
-        {slug ? (
+        {path.replace(/\/$/, '') === '/ink-story' ? (
+          <InkStory />
+        ) : slug ? (
           <Case key={slug} slug={slug} />
         ) : (
           <main>

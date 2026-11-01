@@ -417,3 +417,20 @@ button { font: inherit; color: inherit; }
 @media (max-width: 759px) {
   :root { --fs-caption: 15px; --fs-ui: 16px; --fs-body: 17px; }
 }
+
+/* ---------- /ink-story preview: one ink for the whole page ---------- */
+.is { position: relative; }
+.is__canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; touch-action: pan-y; }
+.is section { position: relative; z-index: 1; }
+.is__hero { height: 100svh; display: grid; align-items: center; padding: 0 var(--gutter); }
+.is__name { height: clamp(90px, min(20vw, 30vh), 320px); }
+.is__pitch { min-height: 90svh; display: grid; align-items: center; padding: 0 var(--gutter); }
+.is__lines { display: grid; font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 84px); line-height: 1.04; letter-spacing: -0.02em; }
+.is__lines span:last-child { color: var(--magma); }
+.is__worth { min-height: 130svh; padding: 20vh var(--gutter) 0; }
+.is__caption { max-width: 36ch; font-size: var(--fs-lead); color: var(--ink-2); }
+.is__line { margin-top: 10vh; height: 52vh; }
+.is__end { min-height: 100svh; display: grid; align-content: center; gap: 28px; padding: 0 var(--gutter) 20vh; }
+.is__hello { height: clamp(70px, 16vw, 260px); }
+.is__mail { justify-self: start; font-family: var(--display); font-weight: 500; font-size: var(--fs-h3); border-bottom: 2px solid var(--magma); padding-bottom: 4px; }
+.is__back { justify-self: start; font-size: var(--fs-ui); color: var(--ink-soft); }
