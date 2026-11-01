@@ -329,6 +329,17 @@ export class InkField {
     p.moved = Math.abs(p.dx) + Math.abs(p.dy) > 0
   }
 
+  /** A splash of ink somewhere inside the shape */
+  splash() {
+    const pts = this.maskPoints
+    if (!pts.length) return
+    const p = pts[Math.floor(Math.random() * pts.length)]!
+    for (let i = 0; i < 5; i++) {
+      const a = Math.random() * Math.PI * 2
+      this.queue.push({ x: p[0], y: p[1], dx: Math.cos(a) * 420, dy: Math.sin(a) * 420, color: this.nextInk(0.9), r: 0.004 })
+    }
+  }
+
   burst(nx: number, ny: number) {
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2

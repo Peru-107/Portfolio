@@ -52,7 +52,7 @@ function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layo
   ctx.filter = 'none'
 }
 
-export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor }: { play: boolean; onStir?: () => void; text?: string; layout?: Layout; anchor?: RefObject<HTMLElement | null> }) {
+export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track }: { play: boolean; onStir?: () => void; text?: string; layout?: Layout; anchor?: RefObject<HTMLElement | null>; track?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const field = useRef<InkField | null>(null)
   const fallback = useRef<HTMLDivElement>(null)
@@ -110,17 +110,74 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor }: { pl
         onStir?.()
       }
     }
+    // Click blooms a drop; press and drag pulls the ink like taffy
     const down = (e: PointerEvent) => {
       const [x, y] = local(e)
-      if (y >= 0 && y <= 1) f.burst(x, y)
+      if (y < 0 || y > 1) return
+      f.pressed = true
+      f.burst(x, y)
     }
+    const up = () => (f.pressed = false)
+    // Any key splashes ink into a random letter
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (e.metaKey || e.ctrlKey || e.altKey || t?.closest('input, textarea, [contenteditable]')) return
+      const r = c.getBoundingClientRect()
+      if (r.bottom < 0 || r.top > innerHeight) return
+      f.splash()
+    }
+    // Left alone, a ghost hand stirs the word now and then so it never looks still
+    let lastTouch = performance.now()
+    let ghostRaf = 0
+    const ghost = window.setInterval(() => {
+      if (performance.now() - lastTouch < 3500 || reduced) return
+      const r = c.getBoundingClientRect()
+      if (r.bottom < innerHeight * 0.3 || r.top > innerHeight) return
+      const a = anchor?.current?.getBoundingClientRect() ?? r
+      const t0 = performance.now()
+      const run = () => {
+        const k = Math.min(1, (performance.now() - t0) / 1600)
+        const px = a.left + a.width * (0.08 + 0.84 * k)
+        const py = a.top + a.height * (0.5 + 0.3 * Math.sin(k * Math.PI * 3))
+        f.move((px - r.left) / r.width, 1 - (py - r.top) / r.height)
+        if (k < 1) ghostRaf = requestAnimationFrame(run)
+      }
+      run()
+    }, 5000)
+    const touched = () => (lastTouch = performance.now())
+
+    // When the word is moved by the page (scroll animations), redraw its shape
+    // where it now is, and carry the ink along with it
+    let trackRaf = 0
+    let lastBox = box()
+    const follow = () => {
+      trackRaf = requestAnimationFrame(follow)
+      const b = box()
+      if (!b || !lastBox) return
+      if (Math.abs(b.y - lastBox.y) + Math.abs(b.h - lastBox.h) < 0.5) return
+      const dy = lastBox.y + lastBox.h / 2 - (b.y + b.h / 2)
+      lastBox = b
+      drawMask(mask, c.clientWidth, c.clientHeight, text, layout, b)
+      f.maskChanged()
+      f.scroll(dy)
+    }
+    if (track) trackRaf = requestAnimationFrame(follow)
     window.addEventListener('pointermove', move, { passive: true })
+    window.addEventListener('pointermove', touched, { passive: true })
     c.addEventListener('pointerdown', down)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('keydown', key)
     return () => {
       ro.disconnect()
       io.disconnect()
       window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointermove', touched)
       c.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('keydown', key)
+      window.clearInterval(ghost)
+      cancelAnimationFrame(ghostRaf)
+      cancelAnimationFrame(trackRaf)
       f.dispose()
       field.current = null
     }

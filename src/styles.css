@@ -333,13 +333,24 @@ button { font: inherit; color: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* ---------- Hero: only the name in ink ---------- */
-.hero { position: relative; height: 100svh; min-height: 560px; overflow: hidden; display: grid; align-items: center; padding: 0 var(--gutter); }
+.hero { position: relative; height: 100svh; min-height: 560px; overflow: hidden; }
+/* The name and its ink, moved as one piece while the screen is held */
+.hero__stage { position: absolute; inset: 0; display: grid; align-items: center; padding: 0 var(--gutter); transform-origin: 50% 0; will-change: transform; pointer-events: none; }
+/* The ink runs edge to edge and fades out softly on every side, never ending on a hard line */
+.hero .ink-canvas {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 80%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent), linear-gradient(to bottom, transparent, #000 9%, #000 80%, transparent);
+  mask-composite: intersect;
+}
 .hero__mark { position: relative; height: clamp(90px, min(20vw, 30vh), 320px); pointer-events: none; }
+/* What I do: slides in under the name, inside the same screen */
+.hero__pitch { position: absolute; left: var(--gutter); right: var(--gutter); bottom: clamp(28px, 6vh, 64px); display: grid; gap: clamp(28px, 5vh, 56px); pointer-events: none; }
+.hero__pitch a { pointer-events: auto; }
 
 /* ---------- Pitch: revealed as you scroll ---------- */
-.pitch { position: relative; padding: var(--section) var(--gutter) clamp(80px, 12vh, 140px); display: grid; gap: clamp(56px, 10vh, 120px); }
 .pitch__copy { container-type: inline-size; }
-.pitch__title { font-family: var(--display); font-weight: 700; font-size: min(5.6cqi, 84px); line-height: 1.04; letter-spacing: -0.02em; }
+.pitch__title { font-family: var(--display); font-weight: 700; font-size: min(5.2cqi, 6.8vh, 80px); line-height: 1.04; letter-spacing: -0.02em; }
 .pitch__line { display: block; overflow: hidden; padding-bottom: 0.06em; }
 .pitch__line > span { display: block; white-space: nowrap; }
 .pitch__line:last-child > span { color: var(--magma); }
@@ -432,3 +443,10 @@ button { font: inherit; color: inherit; }
 .is__hello { height: clamp(70px, 16vw, 260px); }
 .is__mail { justify-self: start; font-family: var(--display); font-weight: 500; font-size: var(--fs-h3); border-bottom: 2px solid var(--magma); padding-bottom: 4px; }
 .is__back { justify-self: start; font-size: var(--fs-ui); color: var(--ink-soft); }
+
+/* Reduced motion: no holding the screen; the name stays, the pitch sits below it */
+@media (prefers-reduced-motion: reduce) {
+  .hero { height: auto; min-height: 0; overflow: visible; }
+  .hero__stage { position: relative; height: 70svh; }
+  .hero__pitch { position: relative; left: auto; right: auto; bottom: auto; padding: 0 var(--gutter) var(--section); }
+}
