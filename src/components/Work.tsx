@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { projects, site } from '../content'
 import { gsap } from '../lib/motion'
 import { linkProps } from '../lib/router'
+import { tick } from '../lib/haptic'
 import { Media } from './Media'
 
 // The work as one object that changes with the scroll: the projects start
@@ -13,7 +14,10 @@ export function Work() {
 
   useEffect(() => {
     const mm = gsap.matchMedia()
-    mm.add('(prefers-reduced-motion: no-preference)', () => {
+    // Rebuilt when the screen crosses 960px: wide screens slide, narrow ones step card by card
+    mm.add({ wideScreen: '(min-width: 960px)', motion: '(prefers-reduced-motion: no-preference)' }, (c) => {
+      if (!c.conditions!.motion) return
+      const stepped = !c.conditions!.wideScreen
       const r = row.current!
       const cards = gsap.utils.toArray<HTMLElement>('.w2__card', r)
       const caps = gsap.utils.toArray<HTMLElement>('.w2__cap', r)
@@ -36,18 +40,34 @@ export function Work() {
       })
       gsap.set(caps, { autoAlpha: 0, y: 10 })
 
-      // Linear against the scroll, so the deal never seems to stall
+      // Linear against the scroll, so the deal never seems to stall. On phones the
+      // deck settles on one card at a time under the thumb, with a small tick
       const tl = gsap.timeline({
         defaults: { ease: 'none' },
-        scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, pin: true, scrub: true, invalidateOnRefresh: true },
+        scrollTrigger: {
+          trigger: root.current,
+          start: 'top top',
+          end: () => `+=${length()}`,
+          pin: true,
+          scrub: true,
+          invalidateOnRefresh: true,
+          snap: stepped ? { snapTo: 'labels', duration: { min: 0.2, max: 0.45 }, delay: 0.08, ease: 'power3.out', onComplete: () => tick() } : undefined,
+        },
       })
       // Dealt: each card flies to its place in a flat row
       cards.forEach((c, i) => {
         tl.to(c, { x: () => slot(i), y: 0, z: 0, rotationY: 0, rotationX: 0, duration: 1 }, i * 0.08)
       })
       tl.to(caps, { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.4, ease: 'power2.out' }, 0.75)
-      // Then the whole row slides past, at the same pace the page scrolls
-      tl.to(r, { x: () => -travel(), ease: 'none', duration: 0.6 + (travel() / innerWidth) * 1.4 }, '+=0.15')
+      if (stepped) {
+        // One card centred at a time; each stop is a place the scroll can rest
+        const centre = (i: number) => -(slot(i) - (innerWidth - cardW()) / 2)
+        tl.to(r, { x: () => centre(0), duration: 0.2 }, '+=0.1').addLabel('card0')
+        for (let i = 1; i < cards.length; i++) tl.to(r, { x: () => centre(i), duration: 0.5 }).addLabel(`card${i}`)
+      } else {
+        // Then the whole row slides past, at the same pace the page scrolls
+        tl.to(r, { x: () => -travel(), ease: 'none', duration: 0.6 + (travel() / innerWidth) * 1.4 }, '+=0.15')
+      }
 
       gsap.to('.w2__bar i', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, scrub: true, invalidateOnRefresh: true } })
     })
@@ -61,7 +81,7 @@ export function Work() {
       </header>
       <div ref={row} className="w2__row">
         {projects.map((p) => (
-          <a key={p.slug} className="w2__card" {...linkProps(`/work/${p.slug}`)} data-cursor="Open" aria-label={`${p.title}, ${p.kind}. Open case study`}>
+          <a key={p.slug} className="w2__card" {...linkProps(`/work/${p.slug}`, true)} data-cursor="Open" aria-label={`${p.title}, ${p.kind}. Open case study`}>
             <div className="w2__media"><Media m={p.cover} /></div>
             {/* Phones held upright get tall cards; their images load only there */}
             {p.portrait && <div className="w2__media w2__media--portrait"><Media m={p.portrait} /></div>}

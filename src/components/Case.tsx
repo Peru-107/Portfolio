@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { projects } from '../content'
-import { gsap, reduced } from '../lib/motion'
+import { Count } from './Count'
 import { linkProps } from '../lib/router'
 import { Media } from './Media'
 import { Contact } from './Contact'
@@ -12,16 +12,7 @@ export function Case({ slug }: { slug: string }) {
   const next = projects[(i + 1) % projects.length]!
 
   useEffect(() => {
-    if (!p) return
-    document.title = `${p.title}: ${p.kind} — Perraz Badhniwalla`
-    if (reduced()) return
-    const ctx = gsap.context(() => {
-      gsap.from('.case__title > span', { yPercent: 110, duration: 1.1, ease: 'power4.out', delay: 0.25 })
-      gsap.from('.case__facts > div', { autoAlpha: 0, y: 14, stagger: 0.06, duration: 0.7, ease: 'power3.out', delay: 0.5 })
-      gsap.from('.case__stage', { clipPath: 'inset(12% 8% 12% 8% round 24px)', duration: 1.4, ease: 'expo.out', delay: 0.4 })
-      gsap.utils.toArray<HTMLElement>('.case__block, .case__shot').forEach((b) => gsap.from(b, { y: 50, autoAlpha: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: b, start: 'top 88%' } }))
-    }, root)
-    return () => ctx.revert()
+    if (p) document.title = `${p.title}: ${p.kind} — Perraz Badhniwalla`
   }, [p])
 
   if (!p) {
@@ -33,50 +24,58 @@ export function Case({ slug }: { slug: string }) {
     )
   }
 
+  // Long-form: text blocks and large images take turns down the page
+  const blocks: ReactNode[] = [
+    <section key="brief" className="case__block case__brief" data-reveal="line">
+      <h2>The problem</h2>
+      <p data-reveal="fade">{p.brief}</p>
+    </section>,
+    <section key="did" className="case__block" data-reveal="line">
+      <h2>What it does</h2>
+      <ul className="case__did">
+        {p.did.map((d) => <li key={d} data-reveal="fade">{d}</li>)}
+      </ul>
+    </section>,
+    <section key="stack" className="case__block" data-reveal="line">
+      <h2>Built with</h2>
+      <p className="case__stack" data-reveal="fade">{p.stack}</p>
+    </section>,
+    <section key="outcome" className="case__block case__outcome" data-reveal="line">
+      <h2>Where it stands</h2>
+      <p data-reveal="fade">{p.result}</p>
+    </section>,
+  ]
+  const shots = p.gallery.map((g, k) => (
+    <div key={`shot${k}`} className="case__shot" data-reveal="unveil"><Media m={g} /></div>
+  ))
+  const flow: ReactNode[] = []
+  blocks.forEach((b, k) => {
+    flow.push(b)
+    // After every block but the last, one image; any left over follow the third block
+    if (k < blocks.length - 1 && shots[k]) flow.push(shots[k])
+    if (k === 2) flow.push(...shots.slice(3))
+  })
+
   return (
     <>
       <main ref={root} className="case">
-        <a className="case__back" {...linkProps('/')}>All work</a>
-        <h1 className="case__title"><span>{p.title}</span></h1>
-        <dl className="case__facts">
+        <a className="case__back u" {...linkProps('/')}>All work</a>
+        <h1 className="case__title" data-reveal="rise"><span>{p.title}</span></h1>
+        <dl className="case__facts" data-reveal="line">
           <div><dt>Project</dt><dd>{p.kind}</dd></div>
           <div><dt>Role</dt><dd>{p.role}</dd></div>
-          <div><dt>Year</dt><dd>{p.year}</dd></div>
+          <div data-reveal="count"><dt>Year</dt><dd><Count>{p.year}</Count></dd></div>
           {p.link && (
             <div className="case__link">
               <a href={p.link.href} target="_blank" rel="noreferrer">{p.link.label}</a>
             </div>
           )}
         </dl>
-        <p className="case__outcome-lead">{p.result}</p>
+        <p className="case__outcome-lead" data-reveal="fade">{p.summary}</p>
         <div className="case__stage">
           <Media m={p.cover} priority />
         </div>
-        <section className="case__block case__brief">
-          <h2>The problem</h2>
-          <p>{p.brief}</p>
-        </section>
-        <section className="case__block">
-          <h2>What it does</h2>
-          <ul className="case__did">
-            {p.did.map((d) => <li key={d}>{d}</li>)}
-          </ul>
-        </section>
-        {p.gallery.length > 0 && (
-          <div className="case__gallery" data-count={p.gallery.length}>
-            {p.gallery.map((g, k) => (
-              <div key={k} className="case__shot"><Media m={g} /></div>
-            ))}
-          </div>
-        )}
-        <section className="case__block">
-          <h2>Built with</h2>
-          <p className="case__stack">{p.stack}</p>
-        </section>
-        <section className="case__block case__outcome">
-          <h2>Where it stands</h2>
-          <p>{p.result}</p>
-        </section>
+        {flow}
         <a className="case__next" {...linkProps(`/work/${next.slug}`)} data-cursor="Next">
           <span>Next project</span>
           <strong>{next.title}</strong>

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { tick } from '../lib/haptic'
 // The card designs load on first print, not with the page
 const designs = ['Bloom', 'Night', 'Proof']
 const print = (text: string, name: string, design: number) => import('./postcard').then((m) => m.postcard(text, name, design))
@@ -83,6 +84,8 @@ export function Typewriter({ onWrite, invite }: { onWrite?: () => void; invite?:
       const at = { x: r.left + r.width / 2, y: r.top + r.height * 0.6 }
       lastPos.current = at
       window.dispatchEvent(new CustomEvent('ink:drop', { detail: at }))
+      // A light tick per letter struck, like a key landing
+      tick(5)
     } else if (text.length < before.length && lastPos.current) {
       window.dispatchEvent(new CustomEvent('ink:drop', { detail: { ...lastPos.current, puff: true } }))
       const r = chars?.length ? chars[chars.length - 1]!.getBoundingClientRect() : null
@@ -193,6 +196,7 @@ export function Typewriter({ onWrite, invite }: { onWrite?: () => void; invite?:
           className="tw__btn"
           disabled={printing}
           onClick={() => {
+            tick()
             setPrinting(true)
             // Let the label change paint before the card is drawn
             setTimeout(() => print(text, name, design).finally(() => setPrinting(false)), 30)

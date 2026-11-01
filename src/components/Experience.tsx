@@ -1,28 +1,54 @@
+import { useState } from 'react'
 import { alsoBuilt, education, experience, recognition } from '../content'
+import { tick } from '../lib/haptic'
+import { Count } from './Count'
 
-// The CV, as a page section: where I’ve worked, what I study, and the
-// smaller projects that didn’t need a case study
+// The CV, as a page section: where I’ve worked as compact rows that open for
+// the detail, then what I study and the smaller projects
 export function Experience() {
+  // The latest role starts open, so the section never reads as empty
+  const [open, setOpen] = useState<number | null>(0)
+
   return (
     <section id="experience" className="xp" aria-labelledby="xp-title">
-      <h2 id="xp-title" className="xp__title">Where I’ve <span className="accent">worked.</span></h2>
+      <h2 id="xp-title" className="xp__title" data-reveal="rise"><span>Where I’ve <span className="accent">worked.</span></span></h2>
       <ol className="xp__jobs">
-        {experience.map((j) => (
-          <li key={j.org} className="xp__job">
-            <p className="xp__when">{j.when}</p>
-            <div>
-              <h3>{j.org}</h3>
-              <p className="xp__role">{j.role}</p>
-              <ul>
-                {j.points.map((pt) => <li key={pt}>{pt}</li>)}
-              </ul>
-            </div>
-          </li>
-        ))}
+        {experience.map((j, i) => {
+          const on = open === i
+          return (
+            <li key={j.org} className="xp__job" data-reveal="line" data-open={on ? '' : undefined}>
+              <h3 className="xp__head">
+                <button
+                  type="button"
+                  id={`xp-btn-${i}`}
+                  className="xp__row"
+                  aria-expanded={on}
+                  aria-controls={`xp-${i}`}
+                  onClick={() => {
+                    tick()
+                    setOpen(on ? null : i)
+                  }}
+                >
+                  <span className="xp__when" data-reveal="count"><Count>{j.when}</Count></span>
+                  <span className="xp__org">{j.org}</span>
+                  <span className="xp__role">{j.role}</span>
+                  <span className="xp__plus" aria-hidden="true" />
+                </button>
+              </h3>
+              <div id={`xp-${i}`} className="xp__body" role="region" aria-labelledby={`xp-btn-${i}`}>
+                <div>
+                  <ul>
+                    {j.points.map((pt) => <li key={pt}>{pt}</li>)}
+                  </ul>
+                </div>
+              </div>
+            </li>
+          )
+        })}
       </ol>
 
-      <div className="xp__cols">
-        <div>
+      <div className="xp__cols" data-reveal="line">
+        <div data-reveal="fade">
           <h3 className="xp__sub">Education</h3>
           {education.map((e) => (
             <div key={e.what} className="xp__edu">
@@ -35,7 +61,7 @@ export function Experience() {
             {recognition.map((r) => <li key={r}>{r}</li>)}
           </ul>
         </div>
-        <div>
+        <div data-reveal="fade">
           <h3 className="xp__sub">Also built</h3>
           <ul className="xp__also">
             {alsoBuilt.map((a) => (

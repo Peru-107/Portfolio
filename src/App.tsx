@@ -8,6 +8,7 @@ import { About } from './components/About'
 import { Experience } from './components/Experience'
 import { Contact } from './components/Contact'
 import { setTransition, usePath } from './lib/router'
+import { useReveals } from './lib/reveal'
 import { gsap, reduced, scrollTop, ScrollTrigger, startScroll } from './lib/motion'
 import { site } from './content'
 
@@ -20,16 +21,52 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const wipe = useRef<HTMLDivElement>(null)
   const onDone = useCallback(() => setReady(true), [])
+  useReveals(path)
 
   useEffect(() => {
     startScroll()
-    // Between pages a sheet of ink rises over the screen and leaves upward
-    setTransition((swap) => {
+    // Opening a project: the card grows to fill the screen, the case study loads
+    // beneath it, and the card settles into the page's header image
+    const expand = (from: HTMLElement, swap: () => void) => {
+      const media = [...from.querySelectorAll<HTMLElement>('.w2__media')].find((m) => m.offsetParent !== null) ?? from
+      const r = media.getBoundingClientRect()
+      const sheet = document.createElement('div')
+      sheet.className = 'expand'
+      sheet.appendChild(media.cloneNode(true))
+      Object.assign(sheet.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` })
+      document.body.appendChild(sheet)
+      const done = () => void gsap.to(sheet, { autoAlpha: 0, duration: 0.25, ease: 'power2.out', onComplete: () => sheet.remove() })
+      gsap.to(sheet, {
+        left: 0,
+        top: 0,
+        width: innerWidth,
+        height: innerHeight,
+        duration: 0.55,
+        ease: 'expo.inOut',
+        onComplete: () => {
+          swap()
+          scrollTop()
+          // The case study arrives a moment later (it loads on demand); then settle onto its image
+          const until = performance.now() + 2000
+          const land = () => {
+            const stage = document.querySelector<HTMLElement>('.case__stage')
+            if (!stage) return performance.now() < until ? requestAnimationFrame(land) : done()
+            const t = stage.getBoundingClientRect()
+            gsap.to(sheet, { left: t.left, top: t.top, width: t.width, height: t.height, duration: 0.5, ease: 'expo.out', onComplete: done })
+          }
+          requestAnimationFrame(land)
+        },
+      })
+    }
+
+    // Between other pages a sheet of ink rises over the screen and leaves upward
+    setTransition((swap, from) => {
       if (reduced()) {
         swap()
         scrollTop()
         return
       }
+      if (from) return expand(from, swap)
       gsap
         .timeline()
         .set(wipe.current, { yPercent: 100, autoAlpha: 1 })

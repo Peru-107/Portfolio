@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { site } from '../content'
 import { gsap, reduced } from '../lib/motion'
+import { Count } from './Count'
 
 export function About() {
   const root = useRef<HTMLElement>(null)
@@ -28,19 +29,22 @@ export function About() {
           })
         })()}
       </p>
-      <dl className="pitch__facts about__facts">
-        {site.facts.map((f) => (
-          <div key={f.k}><dt>{f.k}</dt><dd>{f.v}</dd></div>
+      <dl className="pitch__facts about__facts" data-reveal="line">
+        {site.facts.map((f, i) => (
+          <div key={f.k} data-reveal="fade" style={{ ['--i' as string]: i }}>
+            <dt>{f.k}</dt>
+            <dd data-reveal="count">{/^\d+$/.test(f.v) ? <Count>{f.v}</Count> : f.v}</dd>
+          </div>
         ))}
       </dl>
-      <p className="about__rest">{rest}</p>
+      <p className="about__rest" data-reveal="fade">{rest}</p>
       <div className="about__tools">
-        {site.tools.map((t) => (
-          <div key={t.group} className="about__group">
-            <h3>{t.group}</h3>
+        {site.tools.map((t, i) => (
+          <div key={t.group} className="about__group" data-reveal="fade" style={{ ['--i' as string]: i }}>
+            <h3 data-reveal="line">{t.group}</h3>
             <ul>
-              {t.items.map((i) => (
-                <li key={i}>{i}</li>
+              {t.items.map((item) => (
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </div>
