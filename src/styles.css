@@ -419,73 +419,59 @@ button { font: inherit; color: inherit; }
 .ws__label[data-on] { opacity: 1; transform: none; }
 .ws:not([data-bare]) .ws__label { color: var(--paper); bottom: 16px; }
 
-/* ---------- Hero: the name in ink, then what I can do ---------- */
+/* ---------- Hero: ink wordmark on top, headline and the work in depth below ---------- */
 .hero {
   position: relative; min-height: 100svh; overflow: hidden;
-  display: grid; grid-template-rows: auto 1fr auto; row-gap: clamp(20px, 4vh, 56px);
-  padding: clamp(84px, 13vh, 132px) var(--gutter) clamp(28px, 5vh, 56px);
+  display: grid; grid-template-rows: auto 1fr auto;
+  padding: clamp(88px, 12vh, 128px) var(--gutter) clamp(24px, 4vh, 40px);
 }
-.hero__mark { position: relative; height: clamp(90px, min(22vw, 30vh), 300px); pointer-events: none; }
-.hero__body { position: relative; align-self: end; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: clamp(28px, 5vw, 96px); align-items: end; }
-.hero__pitch { container-type: inline-size; font-family: var(--display); font-weight: 700; line-height: 1.02; letter-spacing: -0.02em; }
-/* Panchang is very wide: size the lines to the column itself, so the longest one always fits, and cap by screen height */
-.hero__line { font-size: min(5.6cqi, 7vh, 76px); }
-.hero__line { display: block; overflow: hidden; padding-bottom: 0.06em; }
+/* The box the ink word is drawn into, and the space it keeps below it */
+.hero__mark { position: relative; height: clamp(84px, min(19vw, 26vh), 280px); margin-bottom: clamp(48px, 9vh, 120px); pointer-events: none; }
+.hero__body { position: relative; align-self: end; display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: clamp(24px, 4vw, 72px); align-items: end; padding-bottom: clamp(24px, 4vh, 48px); }
+.hero__copy { max-width: 900px; pointer-events: none; container-type: inline-size; }
+/* Sized to its own column (Panchang is very wide), capped by screen height */
+.hero__title { font-family: var(--display); font-weight: 700; font-size: min(5.3cqi, 6.4vh, 64px); line-height: 1.02; letter-spacing: -0.015em; }
+.hero__line { display: block; overflow: hidden; padding-bottom: 0.08em; }
 .hero__line > span { display: block; white-space: nowrap; }
-.hero__line:last-child > span { color: var(--magma); }
-.hero__side { display: grid; gap: 22px; padding-bottom: 0.3em; }
-.hero__intro { font-size: clamp(17px, 1.25vw, 20px); line-height: 1.55; color: var(--ink-2); max-width: 36ch; }
-.hero__ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.hero__line:last-child > span { color: var(--ink-soft); }
+.hero__intro { margin-top: clamp(16px, 2.6vh, 24px); max-width: 40ch; font-size: clamp(16px, 1.2vw, 19px); line-height: 1.6; color: var(--ink-2); }
+.hero__stack { position: relative; height: clamp(220px, 36vh, 400px); }
+.hero .ws[data-bare] .ws__stack { width: 52%; margin-right: 38%; }
+.hero__foot { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px 32px; padding-top: 20px; border-top: 1px solid rgba(33, 37, 41, 0.18); }
+.hero__pitch { display: flex; align-items: center; gap: 14px; font-family: var(--display); font-weight: 700; font-size: clamp(16px, 1.5vw, 22px); letter-spacing: -0.01em; line-height: 1.2; }
+.hero__pitch i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--magma); box-shadow: 0 0 0 4px rgba(255, 106, 26, 0.2); animation: pulse 2.4s ease-in-out infinite; }
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; min-height: 48px; padding: 0 22px;
+  display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; min-height: 48px; padding: 0 22px; flex: none;
   border-radius: 999px; border: 1px solid rgba(33, 37, 41, 0.3); font-weight: 600; font-size: 15px;
   transition: background-color 0.25s, color 0.25s, border-color 0.25s;
 }
 .btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .btn--solid { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .btn--solid:hover { background: var(--magma); color: var(--ink); border-color: var(--magma); }
-.hero__status { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: var(--ink-soft); }
-.hero__status i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--magma); box-shadow: 0 0 0 4px rgba(255, 106, 26, 0.2); animation: pulse 2.4s ease-in-out infinite; }
-
-/* ---------- Proof: the products in depth, and what stands behind them ---------- */
-.proof {
-  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(32px, 5vw, 96px); align-items: center;
-  padding: clamp(96px, 16vh, 180px) var(--gutter); border-top: 1px solid rgba(33, 37, 41, 0.12);
-}
-.proof__title { font-family: var(--display); font-weight: 800; font-size: clamp(30px, 3.4vw, 56px); line-height: 1.02; letter-spacing: -0.025em; max-width: 14ch; }
-.proof__points { margin-top: clamp(32px, 5vh, 56px); display: grid; gap: 0; }
-.proof__point { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 16px; padding: 18px 0; border-top: 1px solid rgba(33, 37, 41, 0.14); }
-.proof__point dt { font-family: var(--ui); font-weight: 600; font-size: 15px; padding-top: 0.2em; }
-.proof__point dd { color: var(--ink-2); max-width: 46ch; }
-.proof__stack { position: relative; aspect-ratio: 5 / 4; }
-.proof .ws[data-bare] .ws__stack { width: 54%; margin-right: 40%; }
-.proof .ws__label { bottom: 6%; }
 
 /* ---------- Header and hero at in-between sizes ---------- */
 @media (max-width: 1180px) {
   .header__meta { display: none; }
   .header { grid-template-columns: 1fr auto; }
 }
-@media (max-width: 960px) {
-  .hero__body { grid-template-columns: 1fr; align-items: start; }
-  .hero__intro { max-width: 46ch; }
-  .proof { grid-template-columns: 1fr; }
-  .proof__stack { aspect-ratio: 16 / 11; max-width: 680px; width: 100%; justify-self: center; }
+@media (max-width: 900px) {
+  .hero__body { grid-template-columns: 1fr; }
+  .hero__stack { height: clamp(200px, 30vh, 300px); }
+  .hero__title { font-size: min(5.3cqi, 52px); }
 }
 @media (max-width: 759px) {
-  .hero { padding-top: 84px; row-gap: 20px; }
-  .hero__mark { height: clamp(64px, 20vw, 120px); }
-  .hero__line { font-size: min(5.6cqi, 44px); }
-  .proof__point { grid-template-columns: 1fr; gap: 4px; }
-  .header__nav a[href='/#about'] { display: none; }
+  .hero { padding-top: 80px; }
+  .hero__mark { height: clamp(60px, 19vw, 110px); margin-bottom: clamp(32px, 6vh, 56px); }
+  .hero__stack { display: none; }
+  .hero__line > span { white-space: normal; }
+  .hero__foot { flex-direction: column; align-items: flex-start; }
   .header__nav .magnetic:has(a[href='/#about']) { display: none; }
 }
-@media (max-height: 640px) and (min-width: 761px) {
+@media (max-height: 700px) and (min-width: 760px) {
   .hero { padding-top: 76px; }
-  .hero__mark { height: clamp(70px, 18vh, 140px); }
+  .hero__mark { height: clamp(70px, 17vh, 130px); margin-bottom: clamp(28px, 6vh, 56px); }
+  .hero__stack { height: clamp(200px, 34vh, 280px); }
 }
-
-.hero__role { font-family: var(--ui); font-weight: 600; font-size: 15px; color: var(--ink); }
 .header__cv { border: 1px solid currentColor; border-radius: 999px; margin-left: 6px; padding: 6px 14px !important; }
 .header__cv::after { display: none; }
 .case__outcome-lead { margin-top: 28px; max-width: 52ch; font-size: clamp(20px, 1.6vw, 24px); line-height: 1.45; color: var(--ink); }

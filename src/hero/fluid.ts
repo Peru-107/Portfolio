@@ -153,7 +153,7 @@ export class InkField {
   private pressure!: Double
   private div!: THREE.WebGLRenderTarget
   private curl!: THREE.WebGLRenderTarget
-  private maskTex: THREE.CanvasTexture
+  private maskTex!: THREE.CanvasTexture
   private simW = 0
   private simH = 0
   private dyeW = 0
@@ -176,9 +176,7 @@ export class InkField {
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2))
     this.quad.frustumCulled = false
     this.scene.add(this.quad)
-    this.maskTex = new THREE.CanvasTexture(o.mask)
-    this.maskTex.minFilter = THREE.LinearFilter
-    this.maskTex.magFilter = THREE.LinearFilter
+    this.makeMaskTexture()
 
     const m = (name: string, frag: string, uniforms: Uniforms) => {
       this.mats[name] = new THREE.ShaderMaterial({ vertexShader: vert, fragmentShader: frag, uniforms: { texel: { value: new THREE.Vector2() }, ...uniforms }, depthTest: false, depthWrite: false })
@@ -206,6 +204,16 @@ export class InkField {
     return d
   }
 
+  // The mask canvas changes size with the window; a texture can't change size
+  // in place, so it is rebuilt and handed to the shaders that read it
+  private makeMaskTexture() {
+    this.maskTex?.dispose()
+    this.maskTex = new THREE.CanvasTexture(this.o.mask)
+    this.maskTex.minFilter = THREE.LinearFilter
+    this.maskTex.magFilter = THREE.LinearFilter
+    for (const k of ['advect', 'display']) if (this.mats[k]) this.mats[k]!.uniforms.uMask!.value = this.maskTex
+  }
+
   resize() {
     const c = this.o.canvas
     const w = c.clientWidth || 1
@@ -223,7 +231,7 @@ export class InkField {
     this.pressure = this.double(this.simW, this.simH)
     this.div = this.target(this.simW, this.simH)
     this.curl = this.target(this.simW, this.simH)
-    this.maskTex.needsUpdate = true
+    this.makeMaskTexture()
     this.sampleMask()
   }
 
@@ -368,7 +376,7 @@ export class InkField {
   }
 
   refreshMask() {
-    this.maskTex.needsUpdate = true
+    this.makeMaskTexture()
     this.sampleMask()
   }
 

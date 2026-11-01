@@ -5,7 +5,7 @@ export const site = {
   fullName: 'Perraz Badhniwalla',
   role: 'Product designer & front-end developer, with a finance degree',
   pitch: 'I design products, build them myself, and know their worth.',
-  intro: 'MBA Tech student in Mumbai, studying computer engineering and finance. Five products shipped this year, from a campus app to a TV home screen.',
+  intro: 'I’m an MBA Tech student in Mumbai, studying computer engineering and finance. I design products and build them myself, from a campus app to a TV home screen.',
   status: 'Open to product, front-end and fintech roles from 2027',
   location: 'Mumbai',
   timezone: 'Asia/Kolkata',
