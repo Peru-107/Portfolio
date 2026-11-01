@@ -484,3 +484,8 @@ button { font: inherit; color: inherit; }
   .hero { padding-top: 76px; }
   .hero__mark { height: clamp(70px, 18vh, 140px); }
 }
+
+.hero__role { font-family: var(--ui); font-weight: 600; font-size: 15px; color: var(--ink); }
+.header__cv { border: 1px solid currentColor; border-radius: 999px; margin-left: 6px; padding: 6px 14px !important; }
+.header__cv::after { display: none; }
+.case__outcome-lead { margin-top: 28px; max-width: 52ch; font-size: clamp(20px, 1.6vw, 24px); line-height: 1.45; color: var(--ink); }

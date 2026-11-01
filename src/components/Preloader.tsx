@@ -34,7 +34,14 @@ export function Preloader({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     const el = root.current!
-    if (reduced()) {
+    // A recruiter gives the homepage about ten seconds: the full show runs once
+    // per visit, and only for as long as loading actually takes
+    let seen = false
+    try {
+      seen = sessionStorage.getItem('pre-seen') === '1'
+      sessionStorage.setItem('pre-seen', '1')
+    } catch {}
+    if (reduced() || seen) {
       el.style.display = 'none'
       onDone()
       return
@@ -57,12 +64,12 @@ export function Preloader({ onDone }: { onDone: () => void }) {
     let li = 0
     let lastLine = 0
     const tick = () => {
-      // Never faster than a calm 1.6s for the whole fill, even on a fast line
-      shown.v = Math.min(target.v, shown.v + 1.1)
+      // About three-quarters of a second for the whole fill on a fast line
+      shown.v = Math.min(target.v, shown.v + 2.4)
       num.current!.textContent = String(Math.round(shown.v)).padStart(3, '0')
       fill.current!.style.clipPath = `inset(${100 - shown.v}% 0 0 0)`
       const step = Math.min(LINES.length - 1, Math.floor((shown.v / 100) * LINES.length))
-      if (step !== li && performance.now() - lastLine > 380) {
+      if (step !== li && performance.now() - lastLine > 160) {
         li = step
         lastLine = performance.now()
         const l = line.current!
@@ -80,9 +87,9 @@ export function Preloader({ onDone }: { onDone: () => void }) {
     const exit = () => {
       gsap
         .timeline({ onComplete: () => { el.style.display = 'none' } })
-        .to('.pre__drop', { scale: 18, duration: 0.7, ease: 'power3.in' })
+        .to('.pre__drop', { scale: 18, duration: 0.5, ease: 'power3.in' })
         .to('.pre__meta', { autoAlpha: 0, duration: 0.25 }, '<')
-        .to(el, { yPercent: -100, duration: 0.9, ease: 'expo.inOut' }, '-=0.25')
+        .to(el, { yPercent: -100, duration: 0.75, ease: 'expo.inOut' }, '-=0.2')
         .add(finish, '-=0.55')
     }
 

@@ -37,6 +37,7 @@ export function Header({ dark }: { dark?: boolean }) {
         <Magnetic><a href="/#about" onClick={to('about')}>About</a></Magnetic>
         <Magnetic><a href="/#experience" onClick={to('experience')}>Experience</a></Magnetic>
         <Magnetic><a href="/#contact" onClick={to('contact')}>Contact</a></Magnetic>
+        <Magnetic><a href="/Perraz-Badhniwalla-CV.pdf" target="_blank" rel="noreferrer" className="header__cv">CV</a></Magnetic>
       </nav>
     </header>
   )

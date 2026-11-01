@@ -48,6 +48,7 @@ export function Case({ slug }: { slug: string }) {
             </div>
           )}
         </dl>
+        <p className="case__outcome-lead">{p.result}</p>
         <div className="case__stage">
           <Media m={p.cover} priority />
         </div>

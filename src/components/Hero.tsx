@@ -35,13 +35,14 @@ export function Hero({ ready }: { ready: boolean }) {
           ))}
         </p>
         <div className="hero__side">
+          <p className="hero__role">{site.role}</p>
           <p className="hero__intro">{site.intro}</p>
           <div className="hero__ctas">
             <Magnetic strength={0.2}>
               <a href="#work" className="btn btn--solid" onClick={(e) => (e.preventDefault(), scrollToId('work'))}>See the work</a>
             </Magnetic>
             <Magnetic strength={0.2}>
-              <a href="/Perraz-Badhniwalla-CV.pdf" className="btn" download>Download CV</a>
+              <a href="/Perraz-Badhniwalla-CV.pdf" className="btn" target="_blank" rel="noreferrer">View CV</a>
             </Magnetic>
           </div>
           <p className="hero__status"><i aria-hidden="true" />{site.status}</p>
