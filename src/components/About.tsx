@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { site } from '../content'
 import { gsap, reduced } from '../lib/motion'
 import { Count } from './Count'
-import { Marked } from './Marked'
 
 export function About() {
   const root = useRef<HTMLElement>(null)
@@ -17,7 +16,7 @@ export function About() {
   const [lead, rest] = site.about
   return (
     <section ref={root} id="about" className="about" aria-labelledby="about-title">
-      <h2 id="about-title" className="about__title">About</h2>
+      <h2 id="about-title" className="about__title"><span className="mark" data-reveal="mark">About</span></h2>
       <p className="about__lead">
         {(() => {
           // Everything after the colon, up to the full stop, is the point: it's set in magma
@@ -38,11 +37,11 @@ export function About() {
           </div>
         ))}
       </dl>
-      <p className="about__rest" data-reveal="fade"><Marked>{rest!}</Marked></p>
+      <p className="about__rest" data-reveal="fade">{rest}</p>
       <div className="about__tools">
         {site.tools.map((t, i) => (
           <div key={t.group} className="about__group" data-reveal="fade" style={{ ['--i' as string]: i }}>
-            <h3 data-reveal="line">{t.group}</h3>
+            <h3 data-reveal="line"><span className="mark" data-reveal="mark">{t.group}</span></h3>
             <ul>
               {t.items.map((item) => (
                 <li key={item}>{item}</li>

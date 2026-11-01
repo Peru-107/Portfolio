@@ -628,8 +628,9 @@ a, button, input, textarea, [role='radio'] { touch-action: manipulation; -webkit
 
 /* Counters: each digit is a reel of 0 to 9 that turns to its number */
 .count { white-space: pre; }
-.count__digit { display: inline-block; height: 1.15em; overflow: hidden; vertical-align: -0.24em; }
-.count__reel { display: block; transform: translateY(0); transition: transform 0.7s var(--ease-out); transition-delay: calc(var(--i, 0) * 50ms); }
+.count__digit { position: relative; display: inline-block; height: 1.15em; overflow: hidden; vertical-align: -0.24em; }
+.count__size { visibility: hidden; display: inline-block; line-height: 1.15em; }
+.count__reel { position: absolute; left: 50%; top: 0; margin-left: -0.5em; width: 1em; text-align: center; display: block; transform: translateY(0); transition: transform 0.7s var(--ease-out); transition-delay: calc(var(--i, 0) * 50ms); }
 .count__reel > span { display: block; height: 1.15em; line-height: 1.15em; }
 [data-reveal='count'][data-in] .count__reel { transform: translateY(calc(var(--d) * -1.15em)); }
 
@@ -650,8 +651,8 @@ a, button, input, textarea, [role='radio'] { touch-action: manipulation; -webkit
   [data-reveal], [data-reveal] > span, [data-reveal]::before, .count__reel { transition: none !important; }
 }
 
-/* A highlighter mark on the facts that matter: magma laid under the words from the left */
-.mark { color: inherit; padding: 0.04em 0.12em; margin: 0 -0.12em; -webkit-box-decoration-break: clone; box-decoration-break: clone;
-  background: linear-gradient(var(--magma), var(--magma)) 0 0 / 0% 100% no-repeat; transition: background-size 0.7s var(--ease-out) 0.25s, color 0.3s 0.25s; }
+/* Small headings carry a highlighter mark: magma laid under the label from the left */
+.mark { display: inline-block; color: var(--ink-soft); padding: 0.1em 0.3em; margin-left: -0.3em; line-height: 1.2;
+  background: linear-gradient(var(--magma), var(--magma)) 0 0 / 0% 100% no-repeat; transition: background-size 0.6s var(--ease-out) 0.15s, color 0.3s 0.15s; }
 .mark[data-in] { background-size: 100% 100%; color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .mark { transition: none; } }

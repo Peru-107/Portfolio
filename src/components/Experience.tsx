@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { alsoBuilt, education, experience, recognition } from '../content'
 import { tick } from '../lib/haptic'
 import { Count } from './Count'
-import { Marked } from './Marked'
 
 // The CV, as a page section: where I’ve worked as compact rows that open for
 // the detail, then what I study and the smaller projects
@@ -39,7 +38,7 @@ export function Experience() {
               <div id={`xp-${i}`} className="xp__body" role="region" aria-labelledby={`xp-btn-${i}`}>
                 <div>
                   <ul>
-                    {j.points.map((pt) => <li key={pt}><Marked>{pt}</Marked></li>)}
+                    {j.points.map((pt) => <li key={pt}>{pt}</li>)}
                   </ul>
                 </div>
               </div>
@@ -50,20 +49,20 @@ export function Experience() {
 
       <div className="xp__cols" data-reveal="line">
         <div data-reveal="fade">
-          <h3 className="xp__sub">Education</h3>
+          <h3 className="xp__sub"><span className="mark" data-reveal="mark">Education</span></h3>
           {education.map((e) => (
             <div key={e.what} className="xp__edu">
               <p className="xp__strong">{e.what}</p>
               <p>{e.where}, {e.when}</p>
             </div>
           ))}
-          <h3 className="xp__sub">Recognition</h3>
+          <h3 className="xp__sub"><span className="mark" data-reveal="mark">Recognition</span></h3>
           <ul className="xp__list">
             {recognition.map((r) => <li key={r}>{r}</li>)}
           </ul>
         </div>
         <div data-reveal="fade">
-          <h3 className="xp__sub">Also built</h3>
+          <h3 className="xp__sub"><span className="mark" data-reveal="mark">Also built</span></h3>
           <ul className="xp__also">
             {alsoBuilt.map((a) => (
               <li key={a.title}>

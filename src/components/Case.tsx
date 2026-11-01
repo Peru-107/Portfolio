@@ -27,21 +27,21 @@ export function Case({ slug }: { slug: string }) {
   // Long-form: text blocks and large images take turns down the page
   const blocks: ReactNode[] = [
     <section key="brief" className="case__block case__brief" data-reveal="line">
-      <h2>The problem</h2>
+      <h2><span className="mark" data-reveal="mark">The problem</span></h2>
       <p data-reveal="fade">{p.brief}</p>
     </section>,
     <section key="did" className="case__block" data-reveal="line">
-      <h2>What it does</h2>
+      <h2><span className="mark" data-reveal="mark">What it does</span></h2>
       <ul className="case__did">
         {p.did.map((d) => <li key={d} data-reveal="fade">{d}</li>)}
       </ul>
     </section>,
     <section key="stack" className="case__block" data-reveal="line">
-      <h2>Built with</h2>
+      <h2><span className="mark" data-reveal="mark">Built with</span></h2>
       <p className="case__stack" data-reveal="fade">{p.stack}</p>
     </section>,
     <section key="outcome" className="case__block case__outcome" data-reveal="line">
-      <h2>Where it stands</h2>
+      <h2><span className="mark" data-reveal="mark">Where it stands</span></h2>
       <p data-reveal="fade">{p.result}</p>
     </section>,
   ]
