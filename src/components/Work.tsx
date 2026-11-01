@@ -35,8 +35,9 @@ export function Work() {
       })
       gsap.set(caps, { autoAlpha: 0, y: 10 })
 
+      // Linear against the scroll, so the deal never seems to stall
       const tl = gsap.timeline({
-        defaults: { ease: 'power2.inOut' },
+        defaults: { ease: 'none' },
         scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, pin: true, scrub: true, invalidateOnRefresh: true },
       })
       // Dealt: each card flies to its place in a flat row

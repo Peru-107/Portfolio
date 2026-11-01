@@ -3,6 +3,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 
 gsap.registerPlugin(ScrollTrigger)
+// Phone address bars resize the viewport while you scroll; re-measuring then makes pins jump
+ScrollTrigger.config({ ignoreMobileResize: true })
 
 export const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -11,7 +13,8 @@ let lenis: Lenis | null = null
 // Lenis driven from GSAP's ticker, so ScrollTrigger never reads a stale scroll
 export function startScroll() {
   if (lenis || reduced()) return
-  lenis = new Lenis({ duration: 1.15, smoothWheel: true })
+  // A steady lerp rather than a fixed duration: every wheel step, large or small, glides the same way
+  lenis = new Lenis({ lerp: 0.085, smoothWheel: true, wheelMultiplier: 0.9 })
   lenis.on('scroll', ScrollTrigger.update)
   gsap.ticker.add((t) => lenis?.raf(t * 1000))
   gsap.ticker.lagSmoothing(0)

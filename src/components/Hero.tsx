@@ -40,14 +40,15 @@ export function Hero({ ready }: { ready: boolean }) {
         const top = mark.current!.offsetTop
         return Math.max(innerHeight * 0.13, 96) - top * scale
       }
+      // Linear against the scroll: an eased glide starts and ends slowly, which reads as the page stopping
       const tl = gsap.timeline({
-        defaults: { ease: 'power2.inOut' },
+        defaults: { ease: 'none' },
         scrollTrigger: { trigger: root.current, start: 'top top', end: '+=200%', pin: true, scrub: true, invalidateOnRefresh: true },
       })
       tl.to(stage.current, { y: () => lift(), scale, duration: 1 })
         .from('.pitch__line > span', { yPercent: 110, duration: 0.6, stagger: 0.12, ease: 'power3.out' }, 0.35)
         .from('.pitch__meta > *', { autoAlpha: 0, y: 24, duration: 0.5, stagger: 0.08, ease: 'power3.out' }, 0.75)
-        .to({}, { duration: 0.25 }) // a short hold before the page moves on
+        .to({}, { duration: 0.1 }) // a brief settle before the page moves on
     })
     return () => mm.revert()
   }, [])
