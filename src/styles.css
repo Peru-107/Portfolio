@@ -343,8 +343,12 @@ button { font: inherit; color: inherit; }
 .pitch__line { display: block; overflow: hidden; padding-bottom: 0.06em; }
 .pitch__line > span { display: block; white-space: nowrap; }
 .pitch__line:last-child > span { color: var(--magma); }
-.pitch__meta { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 4fr) auto; gap: 16px 40px; align-items: end; font-size: var(--fs-ui); color: var(--ink-soft); }
-.pitch__intro { max-width: 46ch; font-size: var(--fs-body); line-height: var(--lh-body); color: var(--ink-2); }
+.pitch__meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 40px; align-items: end; font-size: var(--fs-ui); color: var(--ink-soft); }
+.pitch__facts { grid-column: 1 / -1; margin-bottom: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, max-content)); justify-content: start; border-top: 1px solid var(--line); }
+.pitch__facts div { padding: 14px 32px 0 0; }
+.pitch__facts div + div { padding-left: 20px; border-left: 1px solid var(--line); }
+.pitch__facts dt { font-size: var(--fs-caption); color: var(--ink-soft); }
+.pitch__facts dd { font-weight: 600; color: var(--ink); white-space: nowrap; }
 .pitch__status { display: flex; align-items: center; gap: 10px; font-weight: 500; }
 .pitch__status i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--magma); box-shadow: 0 0 0 4px rgba(255, 106, 26, 0.2); animation: pulse 2.4s ease-in-out infinite; }
 .pitch__link { justify-self: start; font-weight: 600; color: var(--ink); white-space: nowrap; background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1.5px no-repeat; padding-bottom: 3px; transition: background-size 0.45s var(--ease-out); }
@@ -363,12 +367,16 @@ button { font: inherit; color: inherit; }
 }
 @media (max-width: 960px) {
   .pitch__meta { grid-template-columns: 1fr auto; }
-  .pitch__intro { grid-column: 1 / -1; }
+  .pitch__facts { grid-column: 1 / -1; }
 }
 @media (max-width: 759px) {
   .pitch__title { font-size: min(7.4cqi, 40px); }
   .pitch__line > span { white-space: normal; }
   .pitch__meta { grid-template-columns: 1fr; gap: 14px; }
+  .pitch__facts { grid-template-columns: 1fr 1fr; row-gap: 14px; }
+  .pitch__facts div { padding-right: 12px; min-width: 0; }
+  .pitch__facts dd { white-space: normal; }
+  .pitch__facts div:nth-child(3) { padding-left: 0; border-left: 0; }
   .hero__mark { height: clamp(64px, 20vw, 120px); }
   .header__nav .magnetic:has(a[href='/#about']) { display: none; }
 }

@@ -50,7 +50,11 @@ export function Hero({ ready }: { ready: boolean }) {
           </p>
         </div>
         <div className="pitch__meta">
-          <p className="pitch__intro">{site.intro}</p>
+          <dl className="pitch__facts">
+            {site.facts.map((f) => (
+              <div key={f.k}><dt>{f.k}</dt><dd>{f.v}</dd></div>
+            ))}
+          </dl>
           <p className="pitch__status"><i aria-hidden="true" />{site.status}</p>
           <a href="#work" className="pitch__link" onClick={(e) => (e.preventDefault(), scrollToId('work'))}>See what I’ve built</a>
         </div>

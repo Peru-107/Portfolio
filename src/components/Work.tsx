@@ -56,7 +56,6 @@ export function Work() {
     <section ref={root} id="work" className="w2" aria-labelledby="work-title">
       <header className="w2__head">
         <h2 id="work-title" className="w2__title">Things I’ve built</h2>
-        <p className="w2__lede">Five products this year. I designed each one and wrote the code.</p>
       </header>
       <div ref={row} className="w2__row">
         {projects.map((p) => (

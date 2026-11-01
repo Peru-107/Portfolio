@@ -6,6 +6,13 @@ export const site = {
   role: 'Product designer & front-end developer, with a finance degree',
   pitch: 'I design products, build them myself, and know their worth.',
   intro: 'I’m an MBA Tech student in Mumbai, studying computer engineering and finance. This year I shipped five products, from a campus app to a TV home screen.',
+  // The title block under the headline, like the corner of a technical drawing
+  facts: [
+    { k: 'Studying', v: 'Computer engineering' },
+    { k: 'And', v: 'Finance (MBA Tech)' },
+    { k: 'At', v: 'NMIMS, Mumbai' },
+    { k: 'Class of', v: '2027' },
+  ],
   status: 'Open to product, front-end and fintech roles from 2027',
   location: 'Mumbai',
   timezone: 'Asia/Kolkata',
