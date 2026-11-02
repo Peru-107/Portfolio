@@ -192,7 +192,6 @@ button { font: inherit; color: inherit; }
 .xp__plus::before, .xp__plus::after { content: ''; position: absolute; left: 0; top: 50%; width: 100%; height: 1.5px; background: var(--ink); transition: transform 0.4s var(--ease-out); }
 .xp__plus::after { transform: rotate(90deg); }
 .xp__job[data-open] .xp__plus::after { transform: rotate(0deg); }
-.xp__row:hover .xp__org { text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
 .xp__body { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows 0.45s var(--ease-out), visibility 0s 0.45s; }
 .xp__job[data-open] .xp__body { visibility: visible; transition-delay: 0s; }
 .xp__body > div { overflow: hidden; }
@@ -421,7 +420,7 @@ button { font: inherit; color: inherit; }
 .w2__cap { position: absolute; left: 0; top: calc(100% + 18px); display: grid; gap: 2px; }
 .w2__kind { font-family: var(--ui); font-size: var(--fs-caption); color: var(--ink-soft); }
 .w2__name { font-family: var(--display); font-weight: 700; font-size: var(--fs-h3); letter-spacing: -0.015em; white-space: nowrap; transition: color 0.3s; }
-.w2__card:hover .w2__name, .w2__card:focus-visible .w2__name { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+
 .w2__bar { position: absolute; left: var(--gutter); right: var(--gutter); bottom: 28px; height: 2px; background: rgba(33, 37, 41, 0.12); }
 .w2__bar i { display: block; height: 100%; background: var(--ink); transform: scaleX(0); transform-origin: left; }
 
@@ -678,5 +677,10 @@ h1[tabindex="-1"]:focus { outline: none; }
 /* Links that roll no longer draw an underline on hover */
 .u:has(.roll):hover, .u:has(.roll):focus-visible { background-size: 0 1.5px; }
 .pitch__link:has(.roll), .pitch__link:has(.roll):hover { background-size: 0 1.5px; }
-@media (hover: none) { .u:has(.roll) { background-size: 100% 1px; } }
+/* Phones have no hover: tappable links carry a thin magma underline instead */
+@media (hover: none) {
+  .u, .pitch__link { background-image: linear-gradient(var(--magma-text), var(--magma-text)); }
+  .contact .u { background-image: linear-gradient(var(--magma), var(--magma)); }
+  .u:has(.roll), .pitch__link:has(.roll) { background-size: 100% 1.5px; }
+}
 @media (prefers-reduced-motion: reduce) { :is(a, button) .roll__c { animation: none !important; } }

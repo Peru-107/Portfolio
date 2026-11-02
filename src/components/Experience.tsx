@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { alsoBuilt, education, experience, recognition } from '../content'
 import { tick } from '../lib/haptic'
 import { Count } from './Count'
+import { Roll } from './Roll'
 
 // The CV, as a page section: where I’ve worked as compact rows that open for
 // the detail, then what I study and the smaller projects
@@ -30,7 +31,7 @@ export function Experience() {
                   }}
                 >
                   <span className="xp__when" data-reveal="count"><Count>{j.when}</Count></span>
-                  <span className="xp__org">{j.org}</span>
+                  <span className="xp__org"><Roll>{j.org}</Roll></span>
                   <span className="xp__role">{j.role}</span>
                   <span className="xp__plus" aria-hidden="true" />
                 </button>

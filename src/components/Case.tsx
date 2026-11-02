@@ -80,7 +80,7 @@ export function Case({ slug }: { slug: string }) {
         {flow}
         <a className="case__next" {...linkProps(`/work/${next.slug}`)} data-cursor="Next">
           <span>Next project</span>
-          <strong>{next.title}</strong>
+          <strong><Roll>{next.title}</Roll></strong>
         </a>
       </main>
       <Contact />

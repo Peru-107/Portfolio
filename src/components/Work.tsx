@@ -4,6 +4,7 @@ import { gsap } from '../lib/motion'
 import { linkProps } from '../lib/router'
 import { tick } from '../lib/haptic'
 import { Media } from './Media'
+import { Roll } from './Roll'
 
 // The work as one object that changes with the scroll: the projects start
 // stacked in depth, deal out into a row, then the row slides past. Each
@@ -89,7 +90,7 @@ export function Work() {
             {p.portrait && <div className="w2__media w2__media--portrait"><Media m={p.portrait} /></div>}
             <div className="w2__cap">
               <p className="w2__kind">{p.kind}, {p.year}</p>
-              <p className="w2__name">{p.title}</p>
+              <p className="w2__name"><Roll>{p.title}</Roll></p>
             </div>
           </a>
         ))}
