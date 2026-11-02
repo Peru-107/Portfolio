@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { projects } from '../content'
 import { Count } from './Count'
+import { Roll } from './Roll'
 import { linkProps } from '../lib/router'
 import { Media } from './Media'
 import { Contact } from './Contact'
@@ -59,7 +60,7 @@ export function Case({ slug }: { slug: string }) {
   return (
     <>
       <main ref={root} className="case">
-        <a className="case__back u" {...linkProps('/')}>All work</a>
+        <a className="case__back u" {...linkProps('/')}><Roll>All work</Roll></a>
         <h1 className="case__title" data-reveal="rise"><span>{p.title}</span></h1>
         <dl className="case__facts" data-reveal="line">
           <div><dt>Type</dt><dd>{p.kind}</dd></div>

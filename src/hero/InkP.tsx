@@ -107,11 +107,15 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     field.current = f
     // The hero's ink fades out on every side
     f.edges = layout === 'wordmark'
-    document.fonts.load('800 100px Panchang').then(() => {
+    // Redraw once the display face is in, and again if any font loads later:
+    // a shape drawn in a fallback face must never stay on screen
+    const fontsIn = () => {
       if (!alive) return
       redraw()
       f.refreshMask()
-    })
+    }
+    document.fonts.load('800 100px Panchang').then(fontsIn)
+    document.fonts.addEventListener('loadingdone', fontsIn)
 
     // Rebuilding the simulation wipes the ink, so only do it when the screen
     // size really changed; pinning and layout nudges just redraw the shape
@@ -271,6 +275,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     window.addEventListener('pointerup', up)
     return () => {
       alive = false
+      document.fonts.removeEventListener('loadingdone', fontsIn)
       ro.disconnect()
       io.disconnect()
       window.removeEventListener('pointermove', move)

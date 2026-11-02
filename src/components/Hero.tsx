@@ -3,6 +3,7 @@ import { InkP } from '../hero/InkP'
 import { Typewriter } from '../hero/Typewriter'
 import { site } from '../content'
 import { gsap, scrollToId } from '../lib/motion'
+import { Roll } from './Roll'
 
 // One screen that changes in place. First only my name in live ink; as you
 // scroll, the screen holds still while the name glides up and settles near
@@ -93,7 +94,7 @@ export function Hero({ ready }: { ready: boolean }) {
         </div>
         <div className="pitch__meta">
           <p className="pitch__status"><i aria-hidden="true" />{site.status}</p>
-          <a href="#work" className="pitch__link" onClick={(e) => (e.preventDefault(), scrollToId('work'))}>See what I’ve built</a>
+          <a href="#work" className="pitch__link" onClick={(e) => (e.preventDefault(), scrollToId('work'))}><Roll>See what I’ve built</Roll></a>
         </div>
       </div>
     </section>
