@@ -662,17 +662,12 @@ a, button, input, textarea, [role='radio'] { touch-action: manipulation; -webkit
 }
 h1[tabindex="-1"]:focus { outline: none; }
 
-/* Letter roll: on hover each letter rises in turn into magma, then on to ink again.
-   Both copies are the letter's own shadows, parked one and two lines below */
+/* Letter roll: on hover each letter rises in turn and stays in magma while hovered.
+   The magma copy is the letter's own shadow, parked one line below */
 .roll__chars { display: inline-flex; overflow: hidden; vertical-align: bottom; line-height: 1.25; padding-bottom: 0.05em; }
-.roll__c { display: inline-block; white-space: pre; text-shadow: 0 1.25em 0 var(--roll, var(--magma-text)), 0 2.5em 0 currentColor; }
-/* One pass per hover: up into magma, a beat, then on to an ink copy identical to the start */
-:is(a, button):is(:hover, :focus-visible) .roll__c { animation: roll 0.8s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 16ms); }
-@keyframes roll {
-  0% { transform: translateY(0); }
-  38%, 62% { transform: translateY(-1.25em); }
-  100% { transform: translateY(-2.5em); }
-}
+.roll__c { display: inline-block; white-space: pre; text-shadow: 0 1.25em 0 var(--roll, var(--magma-text)); transition: transform 0.4s var(--ease-out); transition-delay: calc(var(--i, 0) * 16ms); }
+/* Held in magma for as long as the pointer stays; rolls back to ink when it leaves */
+:is(a, button):is(:hover, :focus-visible) .roll__c { transform: translateY(-1.25em); }
 .contact .roll, .header[data-dark] .roll { --roll: var(--magma); }
 /* Links that roll no longer draw an underline on hover */
 .u:has(.roll):hover, .u:has(.roll):focus-visible { background-size: 0 1.5px; }
@@ -683,4 +678,4 @@ h1[tabindex="-1"]:focus { outline: none; }
   .contact .u { background-image: linear-gradient(var(--magma), var(--magma)); }
   .u:has(.roll), .pitch__link:has(.roll) { background-size: 100% 1.5px; }
 }
-@media (prefers-reduced-motion: reduce) { :is(a, button) .roll__c { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .roll__c { transition: none; } }
