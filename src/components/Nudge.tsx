@@ -19,9 +19,35 @@ const ITEMS: Item[] = [
 ]
 
 // A point on a stroke: where, when it was laid, and how wide the brush was there
-type Dot = { x: number; y: number; t: number; w: number; start: boolean; splash?: Drop[] }
-// A drop of the splash a nib leaves where it first touches: offset from the point, and size
-type Drop = { dx: number; dy: number; r: number }
+type Dot = { x: number; y: number; t: number; w: number; start: boolean; splash?: Splash }
+// The splash a nib leaves where it lands: a ragged blot, and flicks thrown out
+// from it (each a hairline tail ending in a teardrop)
+type Splash = { blot: [number, number][]; flicks: { a: number; off: number; len: number; r: number }[] }
+
+function splashAt(): Splash {
+  // The blot: a rough circle whose edge bursts out in a few sharp spikes
+  const base = 4 + Math.random() * 3
+  const spikes = Array.from({ length: 5 + Math.floor(Math.random() * 5) }, () => ({ a: Math.random() * Math.PI * 2, l: 3 + Math.random() * 9 }))
+  const blot: [number, number][] = []
+  for (let i = 0; i < 48; i++) {
+    const a = (i / 48) * Math.PI * 2
+    let r = base * (0.85 + Math.random() * 0.25)
+    for (const sp of spikes) {
+      const d = Math.atan2(Math.sin(a - sp.a), Math.cos(a - sp.a))
+      r += sp.l * Math.exp(-((d / 0.09) ** 2))
+    }
+    blot.push([Math.cos(a) * r, Math.sin(a) * r])
+  }
+  // The flicks: mostly thrown one way, as a flick of the pen would
+  const lean = Math.random() * Math.PI * 2
+  const flicks = Array.from({ length: 4 + Math.floor(Math.random() * 4) }, () => ({
+    a: lean + (Math.random() - 0.5) * 2.2,
+    off: base * (0.6 + Math.random() * 0.6),
+    len: 10 + Math.random() * 30,
+    r: 0.8 + Math.random() * 2,
+  }))
+  return { blot, flicks }
+}
 const NIB = -Math.PI / 4 // a broad nib held at 45 degrees, as in calligraphy
 const LIFE = 5.2 // seconds from wet to gone
 
@@ -90,12 +116,28 @@ export function Nudge() {
         const head = st[0]!
         if (head.splash) {
           ctx.save()
+          ctx.translate(head.x, head.y)
           ctx.shadowColor = `rgba(${r}, ${g}, ${bl}, ${al * 0.85})`
           ctx.shadowBlur = 8
           ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
-          for (const d of head.splash) {
+          const { blot, flicks } = head.splash
+          ctx.beginPath()
+          ctx.moveTo(blot[0]![0], blot[0]![1])
+          for (const [px, py] of blot) ctx.lineTo(px, py)
+          ctx.closePath()
+          ctx.fill()
+          // Each flick: a hairline from the blot that swells into a teardrop
+          for (const f of flicks) {
+            const c = Math.cos(f.a)
+            const sn = Math.sin(f.a)
+            const ex = c * (f.off + f.len)
+            const ey = sn * (f.off + f.len)
             ctx.beginPath()
-            ctx.arc(head.x + d.dx, head.y + d.dy, d.r, 0, Math.PI * 2)
+            ctx.moveTo(c * f.off - sn * 0.4, sn * f.off + c * 0.4)
+            ctx.lineTo(ex - sn * f.r, ey + c * f.r)
+            ctx.arc(ex, ey, f.r, f.a + Math.PI / 2, f.a - Math.PI / 2, true)
+            ctx.lineTo(c * f.off + sn * 0.4, sn * f.off - c * 0.4)
+            ctx.closePath()
             ctx.fill()
           }
           ctx.restore()
@@ -148,14 +190,8 @@ export function Nudge() {
       const raw = (1.4 + 8 * broad) * Math.max(0.55, 1 - speed / 2600)
       // Eased into the last width, so the line swells and thins smoothly
       const w = last && !start ? last.w * 0.6 + raw * 0.4 : raw
-      // Where the nib first touches, ink splashes: a blot and a few spattered drops
-      const splash = start
-        ? [{ dx: 0, dy: 0, r: 4.5 + Math.random() * 2.5 }, ...Array.from({ length: 4 + Math.floor(Math.random() * 4) }, () => {
-            const a = Math.random() * Math.PI * 2
-            const d = 8 + Math.random() * 22
-            return { dx: Math.cos(a) * d, dy: Math.sin(a) * d, r: 0.8 + Math.random() * 2.2 }
-          })]
-        : undefined
+      // Where the nib first touches, the ink splashes
+      const splash = start ? splashAt() : undefined
       dots.push({ x, y, t, w, start, splash })
       if (dots.length > 1600) dots.splice(0, dots.length - 1600)
       last = { x, y, t, w }
