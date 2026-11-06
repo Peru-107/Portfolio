@@ -19,7 +19,10 @@ const ITEMS: Item[] = [
 ]
 
 // A point on a stroke: where, when it was laid, and how wide the brush was there
-type Dot = { x: number; y: number; t: number; w: number; start: boolean }
+type Dot = { x: number; y: number; t: number; w: number; start: boolean; splash?: Drop[] }
+// A drop of the splash a nib leaves where it first touches: offset from the point, and size
+type Drop = { dx: number; dy: number; r: number }
+const NIB = -Math.PI / 4 // a broad nib held at 45 degrees, as in calligraphy
 const LIFE = 5.2 // seconds from wet to gone
 
 // Colour of the ink at an age (0 = just laid, 1 = gone): fiery yellow, warming
@@ -49,7 +52,7 @@ export function Nudge() {
     const dpr = Math.min(devicePixelRatio || 1, 2)
     const dots: Dot[] = []
     let raf = 0
-    let last: { x: number; y: number; t: number } | null = null
+    let last: { x: number; y: number; t: number; w: number } | null = null
 
     const size = () => {
       c.width = Math.round(c.clientWidth * dpr)
@@ -76,13 +79,28 @@ export function Nudge() {
       ctx.clearRect(0, 0, c.clientWidth, c.clientHeight)
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
-      // Like a pen: one crisp line per stroke with a glow that hugs it. It curves through the
+      // Like a calligraphy pen: a splash where the nib lands, then one crisp line
+      // whose width follows the nib, with a glow that hugs it. It curves through the
       // midpoints of its points, so the whole line cools and fades together,
       // like ink drying; segments follow the nib's width as it was drawn
       for (const st of kept) {
-        if (st.length < 2) continue
         const age = (now - st[st.length - 1]!.t) / LIFE
         const [r, g, bl, al] = inkAt(age)
+        // The splash at the start of the stroke, glowing like the line
+        const head = st[0]!
+        if (head.splash) {
+          ctx.save()
+          ctx.shadowColor = `rgba(${r}, ${g}, ${bl}, ${al * 0.85})`
+          ctx.shadowBlur = 8
+          ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
+          for (const d of head.splash) {
+            ctx.beginPath()
+            ctx.arc(head.x + d.dx, head.y + d.dy, d.r, 0, Math.PI * 2)
+            ctx.fill()
+          }
+          ctx.restore()
+        }
+        if (st.length < 2) continue
         // A tight glow first: the whole stroke as one path, lit by a short shadow
         // of its own colour, so the light hugs the line instead of haloing it
         ctx.save()
@@ -123,10 +141,24 @@ export function Nudge() {
       // A fresh stroke after a pause or a jump; otherwise faster means a thinner line
       const start = !last || t - last.t > 0.12 || Math.hypot(x - last.x, y - last.y) > 120
       const speed = last && !start ? Math.hypot(x - last.x, y - last.y) / Math.max(t - last.t, 1 / 240) : 0
-      const w = Math.max(2, Math.min(5.5, 5.5 - speed / 500))
-      dots.push({ x, y, t, w, start })
+      // Calligraphy: across the nib's edge the line is full, along it a hairline;
+      // moving fast thins it a little more, as ink runs short
+      const ang = last && !start ? Math.atan2(y - last.y, x - last.x) : NIB + Math.PI / 2
+      const broad = Math.abs(Math.sin(ang - NIB))
+      const raw = (1.4 + 8 * broad) * Math.max(0.55, 1 - speed / 2600)
+      // Eased into the last width, so the line swells and thins smoothly
+      const w = last && !start ? last.w * 0.6 + raw * 0.4 : raw
+      // Where the nib first touches, ink splashes: a blot and a few spattered drops
+      const splash = start
+        ? [{ dx: 0, dy: 0, r: 4.5 + Math.random() * 2.5 }, ...Array.from({ length: 4 + Math.floor(Math.random() * 4) }, () => {
+            const a = Math.random() * Math.PI * 2
+            const d = 8 + Math.random() * 22
+            return { dx: Math.cos(a) * d, dy: Math.sin(a) * d, r: 0.8 + Math.random() * 2.2 }
+          })]
+        : undefined
+      dots.push({ x, y, t, w, start, splash })
       if (dots.length > 1600) dots.splice(0, dots.length - 1600)
-      last = { x, y, t }
+      last = { x, y, t, w }
       wake()
     }
     const down = (e: PointerEvent) => {
