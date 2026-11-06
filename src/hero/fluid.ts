@@ -118,18 +118,56 @@ const FLOOD = head + /* glsl */ `
 const DISPLAY = head + /* glsl */ `
   uniform sampler2D uDye; uniform sampler2D uVelocity; uniform sampler2D uMask; uniform vec3 maskXf;
   uniform vec3 paper; uniform vec2 dyeTexel; uniform float time; uniform float outside; uniform float reveal; uniform float edges;
+  // The pointer's recent path: position and velocity (xy, zw), and how much each point still pulls
+  uniform vec4 trail[12]; uniform vec4 trailK[3]; uniform vec3 warpBurst;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+  // Cheap smooth noise for an organic wobble in the swirl
+  float wob(vec2 p) { return sin(p.x * 3.1 + sin(p.y * 2.3 + time)) * cos(p.y * 2.7 - sin(p.x * 1.9 - time * 0.8)); }
+
+  // Fluid-image warp: every point on the pointer's path spins the picture around
+  // it (a vortex), drags it along (a smudge), and stirs it with a little noise.
+  // The ink is read through this warp, so the letters twist like liquid glass
+  vec2 warp(vec2 uv) {
+    float aspect = dyeTexel.y / dyeTexel.x;
+    vec2 p = uv * vec2(aspect, 1.0);
+    vec2 swirl = vec2(0.0);
+    for (int i = 0; i < 12; i++) {
+      float k = trailK[i / 4][i - (i / 4) * 4];
+      if (k < 0.002) continue;
+      vec2 at = trail[i].xy * vec2(aspect, 1.0);
+      vec2 to = p - at;
+      float d = length(to);
+      float t = 1.0 - smoothstep(0.0, 0.2, d);
+      float f = t * t * t * k * (1.0 + wob(uv * 5.0 + float(i) * 1.7) * 0.4);
+      vec2 v = trail[i].zw;
+      float speed = min(length(v), 2.4);
+      swirl += vec2(-to.y, to.x) / max(d, 0.03) * f * speed * 0.01;
+      swirl += v * f * 0.008;
+      swirl += vec2(wob(p * 4.0 + time), wob(p.yx * 4.0 - time)) * f * 0.006;
+    }
+    // A click pushes the ink outward in a ring that spreads and fades
+    if (warpBurst.z > 0.002) {
+      vec2 to = p - warpBurst.xy * vec2(aspect, 1.0);
+      float d = length(to);
+      float r = 0.12 + (1.0 - warpBurst.z) * 0.35;
+      float t = 1.0 - smoothstep(0.0, r, d);
+      swirl += to / max(d, 0.001) * t * t * warpBurst.z * warpBurst.z * 0.05;
+    }
+    return uv - vec2(swirl.x / aspect, swirl.y);
+  }
+
   void main() {
-    vec2 vel = texture2D(uVelocity, vUv).xy;
+    vec2 uv = warp(vUv);
+    vec2 vel = texture2D(uVelocity, uv).xy;
     // The flow nudges the letter's edge, so it sways with the ink
-    float m = texture2D(uMask, (vUv + vel * 0.000025) * maskXf.x + maskXf.yz).r;
+    float m = texture2D(uMask, (uv + vel * 0.000025) * maskXf.x + maskXf.yz).r;
     float mask = smoothstep(0.42, 0.58, m) * reveal;
 
-    vec3 dye = texture2D(uDye, vUv).rgb;
-    float dl = length(texture2D(uDye, vUv - vec2(dyeTexel.x, 0.0)).rgb);
-    float dr = length(texture2D(uDye, vUv + vec2(dyeTexel.x, 0.0)).rgb);
-    float dt = length(texture2D(uDye, vUv + vec2(0.0, dyeTexel.y)).rgb);
-    float db = length(texture2D(uDye, vUv - vec2(0.0, dyeTexel.y)).rgb);
+    vec3 dye = texture2D(uDye, uv).rgb;
+    float dl = length(texture2D(uDye, uv - vec2(dyeTexel.x, 0.0)).rgb);
+    float dr = length(texture2D(uDye, uv + vec2(dyeTexel.x, 0.0)).rgb);
+    float dt = length(texture2D(uDye, uv + vec2(0.0, dyeTexel.y)).rgb);
+    float db = length(texture2D(uDye, uv - vec2(0.0, dyeTexel.y)).rgb);
     vec3 n = normalize(vec3((dl - dr) * 2.2, (db - dt) * 2.2, 1.0));
     float spec = pow(max(dot(n, normalize(vec3(-0.4, 0.6, 0.7))), 0.0), 18.0);
 
@@ -192,6 +230,10 @@ export class InkField {
     return [(p[0] - cx) / k, (p[1] - cy) / k]
   }
   private pointer = { x: 0.5, y: 0.5, dx: 0, dy: 0, moved: false, down: false }
+  // The pointer's last twelve positions for the warp, newest first, each fading out
+  private trail = new Float32Array(48)
+  private trailK = new Float32Array(12)
+  private warpBurst = [0, 0, 0]
   private queue: { x: number; y: number; dx: number; dy: number; color: [number, number, number]; r: number }[] = []
   reveal = 0
   /** How much ink shows outside the shapes (trails); 0.1 keeps it subtle */
@@ -232,7 +274,7 @@ export class InkField {
     m('gradient', GRADIENT, { uPressure: tex(), uVelocity: tex() })
     m('fade', FADE, { uTexture: tex(), value: { value: 0.8 } })
     m('flood', FLOOD, { uTarget: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, color: { value: [0, 0, 0] } })
-    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 } })
+    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst } })
 
     this.resize()
   }
@@ -387,6 +429,9 @@ export class InkField {
   }
 
   burst(nx: number, ny: number) {
+    this.warpBurst[0] = nx
+    this.warpBurst[1] = ny
+    this.warpBurst[2] = 1
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2
       this.queue.push({ x: nx, y: ny, dx: Math.cos(a) * 500, dy: Math.sin(a) * 500, color: this.nextInk(0.6), r: 0.0018 })
@@ -423,6 +468,19 @@ export class InkField {
     this.t += dt
 
     const p = this.pointer
+    const real = dt * 2
+    // The warp trail fades on its own clock, whatever the frame rate
+    const fade = Math.exp(-real * 3.4)
+    for (let i = 0; i < 12; i++) this.trailK[i] = this.trailK[i]! * fade
+    this.warpBurst[2] = this.warpBurst[2]! * Math.exp(-real * 2.6)
+    if (p.moved) {
+      // Newest point at the front; velocity in screen-heights per second
+      this.trail.copyWithin(4, 0, 44)
+      this.trailK.copyWithin(1, 0, 11)
+      const per = 1 / Math.max(real, 1 / 120)
+      this.trail.set([p.x, p.y, p.dx * per * (this.dyeW / this.dyeH), p.dy * per], 0)
+      this.trailK[0] = 1
+    }
     if (p.moved) {
       p.moved = false
       const speed = Math.hypot(p.dx, p.dy)

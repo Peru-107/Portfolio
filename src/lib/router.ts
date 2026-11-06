@@ -15,9 +15,18 @@ export function setTransition(t: Transition) {
 export function go(to: string, from?: HTMLElement) {
   if (to === location.pathname) return
   transition(() => {
-    history.pushState({}, '', to)
+    // The page being left remembers where it was, so coming back lands in the same place
+    history.replaceState({ ...history.state, y: scrollY }, '')
+    history.pushState({ app: true }, '', to)
     dispatchEvent(new Event(EVT))
   }, from)
+}
+
+/** Back to where you came from on this site (the same spot in the work deck);
+ *  a visitor who arrived straight on this page goes to `fallback` instead */
+export function back(fallback = '/') {
+  if (history.state?.app) transition(() => history.back())
+  else go(fallback)
 }
 
 export function usePath() {

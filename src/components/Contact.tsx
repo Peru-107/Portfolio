@@ -4,6 +4,8 @@ import { Magnetic } from './Magnetic'
 import { scrollToId } from '../lib/motion'
 import { tick } from '../lib/haptic'
 import { Roll } from './Roll'
+import { Lava } from './Lava'
+import { Nudge } from './Nudge'
 
 // The closing chapter, on ink: one question, then the email address set as
 // large as the page allows. Its letters ink in magma when you point at it (on
@@ -44,6 +46,7 @@ export function Contact() {
 
   return (
     <section id="contact" className="contact" aria-labelledby="contact-title">
+      <Lava />
       <h2 id="contact-title" className="contact__title" data-reveal="rise"><span>Got an idea that <span className="accent">should exist?</span></span></h2>
       <div className="contact__mail" data-reveal="fade">
         <a ref={mail} href={`mailto:${site.email}`} className="contact__email" data-cursor="Write" aria-label={`Email ${site.email}`}>
@@ -67,6 +70,7 @@ export function Contact() {
           </li>
         ))}
       </ul>
+      <Nudge />
       <footer className="footer" data-reveal="line">
         <p>© {new Date().getFullYear()} {site.fullName}</p>
         <p>Designed and built by me with WebGL, GSAP and Lenis</p>

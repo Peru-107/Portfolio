@@ -5,7 +5,7 @@
 const W = 1600
 const H = 1000
 const SITE = 'perraz-badhniwalla.vercel.app'
-const C = { paper: '#e9ecef', paper2: '#dee2e6', ink: '#212529', soft: '#495057', magma: '#ff6a1a', ember: '#ffb238', deep: '#b3261e' }
+const C = { paper: '#e9ecef', paper2: '#dee2e6', ink: '#212529', soft: '#495057', magma: '#f6440e', ember: '#ffb238', deep: '#b3261e' }
 
 type Ctx = CanvasRenderingContext2D
 type Rnd = () => number

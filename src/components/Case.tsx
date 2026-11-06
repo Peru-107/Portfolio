@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { projects } from '../content'
+import { projects, type Media as M } from '../content'
 import { Count } from './Count'
 import { Roll } from './Roll'
-import { linkProps } from '../lib/router'
-import { scrollToId } from '../lib/motion'
+import { back, linkProps } from '../lib/router'
+import { gsap, scrollToId } from '../lib/motion'
 import { Media } from './Media'
 import { Contact } from './Contact'
+import { Depth, type Shot } from './Depth'
+
+// Every still picture a project has, for the screens carousel
+function pictures(m: M | undefined): Shot[] {
+  if (!m) return []
+  if (m.type === 'image') return [{ src: m.src, alt: m.alt }]
+  if (m.type === 'video') return [{ src: m.poster, alt: m.alt }]
+  return m.srcs.map((src) => ({ src, alt: m.alt }))
+}
 
 // The four parts of every case study, in order; the rail beside them lists these
 const PARTS = [
@@ -25,6 +34,32 @@ export function Case({ slug }: { slug: string }) {
   useEffect(() => {
     if (p) document.title = `${p.title}: ${p.kind} — Perraz Badhniwalla`
   }, [p])
+
+  // Scroll zoom: the cover waits small between two words, then grows to fill
+  // the screen as you scroll, the words parting to make room
+  useEffect(() => {
+    const mm = gsap.matchMedia()
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      const zoom = root.current?.querySelector<HTMLElement>('.case__zoom')
+      const stage = zoom?.querySelector<HTMLElement>('.case__stage')
+      if (!zoom || !stage) return
+      const cover = () => Math.max(innerWidth / stage.offsetWidth, innerHeight / stage.offsetHeight) * 1.002
+      // The words sit level with the cover's middle while it waits at the top of the band
+      const flanks = zoom.querySelectorAll<HTMLElement>('.case__flank')
+      const level = () => flanks.forEach((f) => (f.style.top = `${stage.offsetHeight / 2}px`))
+      level()
+      const st = { trigger: zoom, start: 'top top', end: '+=110%', scrub: true, invalidateOnRefresh: true }
+      // Waits small just under the summary, then travels to the middle as it grows to fill the screen
+      gsap.fromTo(
+        stage,
+        { scale: () => (innerWidth < 760 ? 0.86 : 0.6), y: 0 },
+        { scale: cover, y: () => (zoom.offsetHeight - stage.offsetHeight) / 2, ease: 'none', scrollTrigger: { ...st, pin: true, onRefreshInit: level } },
+      )
+      gsap.to(zoom.querySelector('.case__flank--l'), { xPercent: -70, autoAlpha: 0, ease: 'none', scrollTrigger: { ...st, end: '+=55%' } })
+      gsap.to(zoom.querySelector('.case__flank--r'), { xPercent: 70, autoAlpha: 0, ease: 'none', scrollTrigger: { ...st, end: '+=55%' } })
+    })
+    return () => mm.revert()
+  }, [slug])
 
   // The rail marks the part that crosses the middle of the screen
   useEffect(() => {
@@ -72,21 +107,21 @@ export function Case({ slug }: { slug: string }) {
       <p data-reveal="fade">{p.result}</p>
     </section>,
   ]
-  const shots = p.gallery.map((g, k) => (
-    <div key={`shot${k}`} className="case__shot" data-reveal="unveil"><Media m={g} /></div>
+  // All its screens, once each, in one carousel after "What it does"
+  const seen = new Set<string>()
+  const shots = [...p.gallery, p.portrait, p.cover].flatMap(pictures).filter((s) => !seen.has(s.src) && seen.add(s.src))
+  const flow: ReactNode[] = [...blocks]
+  flow.splice(2, 0, (
+    <section key="screens" className="case__screens" data-reveal="fade">
+      <Depth shots={shots} label={`${p.title} screens`} />
+    </section>
   ))
-  const flow: ReactNode[] = []
-  blocks.forEach((b, k) => {
-    flow.push(b)
-    // After every block but the last, one image; any left over follow the third block
-    if (k < blocks.length - 1 && shots[k]) flow.push(shots[k])
-    if (k === 2) flow.push(...shots.slice(3))
-  })
+  const [lead, ...rest] = p.role.split(' ')
 
   return (
     <>
       <main ref={root} className="case">
-        <a className="case__back u" {...linkProps('/')}><Roll>All work</Roll></a>
+        <a className="case__back u" href="/" onClick={(e) => (e.preventDefault(), back('/'))}><Roll>All work</Roll></a>
         <h1 className="case__title" data-reveal="rise"><span>{p.title}</span></h1>
         <dl className="case__facts" data-reveal="line">
           <div><dt>Type</dt><dd>{p.kind}</dd></div>
@@ -100,8 +135,14 @@ export function Case({ slug }: { slug: string }) {
           )}
         </dl>
         <p className="case__outcome-lead" data-reveal="fade">{p.summary}</p>
-        <div className="case__stage">
-          <Media m={p.cover} priority />
+        <div className="pin-wrap case__zoomwrap">
+          <div className="case__zoom">
+            <span className="case__flank case__flank--l" aria-hidden="true">{lead}</span>
+            <div className="case__stage">
+              <Media m={p.cover} priority />
+            </div>
+            <span className="case__flank case__flank--r" aria-hidden="true">{rest.join(' ')}</span>
+          </div>
         </div>
         <div className="case__body">
           {/* Stays beside the story while it scrolls: what this is, and where you are in it */}

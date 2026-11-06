@@ -9,7 +9,7 @@ import { Experience } from './components/Experience'
 import { Contact } from './components/Contact'
 import { setTransition, usePath } from './lib/router'
 import { useReveals } from './lib/reveal'
-import { gsap, reduced, scrollTop, ScrollTrigger, startScroll } from './lib/motion'
+import { gsap, reduced, scrollTop, scrollToY, ScrollTrigger, startScroll } from './lib/motion'
 import { site } from './content'
 
 // Case studies and the lab load only when visited, so the first screen downloads less
@@ -59,7 +59,10 @@ export default function App() {
           const land = () => {
             const stage = document.querySelector<HTMLElement>('.case__stage')
             if (!stage) return performance.now() < until ? requestAnimationFrame(land) : done()
-            gsap.to(sheet, { clipPath: clip(stage.getBoundingClientRect()), duration: 0.45, ease: 'expo.out', onComplete: done })
+            const r = stage.getBoundingClientRect()
+            // The cover waits further down the page: settle onto its visible part, or just fade
+            if (r.top > innerHeight * 0.7) return done()
+            gsap.to(sheet, { clipPath: clip({ left: r.left, top: r.top, right: r.right, bottom: Math.min(r.bottom, innerHeight) }), duration: 0.45, ease: 'expo.out', onComplete: done })
           }
           requestAnimationFrame(land)
         },
@@ -107,6 +110,27 @@ export default function App() {
     document.fonts.ready.then(() => ScrollTrigger.refresh())
     return () => cancelAnimationFrame(id)
   }, [path])
+
+  // Going back lands where that page was left (the same card in the work deck).
+  // The site restores the position itself, after the pinned sections are measured
+  useEffect(() => {
+    history.scrollRestoration = 'manual'
+    let id = 0
+    const on = () => {
+      const y = history.state?.y
+      if (typeof y !== 'number') return
+      window.clearTimeout(id)
+      id = window.setTimeout(() => {
+        ScrollTrigger.refresh()
+        scrollToY(y)
+      }, 120)
+    }
+    addEventListener('popstate', on)
+    return () => {
+      removeEventListener('popstate', on)
+      window.clearTimeout(id)
+    }
+  }, [])
 
   const slug = path.startsWith('/work/') ? path.slice(6).replace(/\/$/, '') : null
 

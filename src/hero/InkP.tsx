@@ -10,11 +10,11 @@ const PAPER: [number, number, number] = [0.914, 0.925, 0.937]
 // Each ink is what it absorbs from paper: charcoal, magma, ember, deep red
 const INKS: [number, number, number][] = [
   [0.74, 0.73, 0.72],
-  [0.0, 0.52, 0.86],
+  [0.0, 0.66, 0.88],
   [0.0, 0.22, 0.7],
   [0.72, 0.72, 0.71],
   [0.2, 0.82, 0.82],
-  [0.0, 0.48, 0.84],
+  [0.0, 0.6, 0.87],
 ]
 
 type Layout = 'hero' | 'center' | 'wordmark'

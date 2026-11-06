@@ -37,6 +37,11 @@ export function scrollTop() {
   else window.scrollTo(0, 0)
 }
 
+export function scrollToY(y: number) {
+  if (lenis) lenis.scrollTo(y, { immediate: true, force: true })
+  else window.scrollTo(0, y)
+}
+
 export function scrollToId(id: string) {
   const el = document.getElementById(id)
   if (!el) return

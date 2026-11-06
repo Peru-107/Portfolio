@@ -2,7 +2,7 @@
 // a 3D library: half-float render targets, a full-screen quad, shader programs
 // with named uniforms, and the letter mask uploaded from a canvas.
 
-export type Value = number | number[] | Target | MaskTexture | null
+export type Value = number | number[] | Float32Array | Target | MaskTexture | null
 export type Uniforms = Record<string, { value: Value }>
 
 export class Target {
@@ -167,6 +167,8 @@ export class Renderer {
       const loc = p.location(name)
       if (loc === null || v === null) continue
       if (typeof v === 'number') gl.uniform1f(loc, v)
+      // Packed arrays are always vec4[]: four numbers per entry
+      else if (v instanceof Float32Array) gl.uniform4fv(loc, v)
       else if (Array.isArray(v)) {
         if (v.length === 2) gl.uniform2f(loc, v[0]!, v[1]!)
         else gl.uniform3f(loc, v[0]!, v[1]!, v[2]!)
