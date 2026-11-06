@@ -20,36 +20,80 @@ const ITEMS: Item[] = [
 
 // A point on a stroke: where, when it was laid, and how wide the brush was there
 type Dot = { x: number; y: number; t: number; w: number; start: boolean; splash?: Splash }
-// The splash a nib leaves where it lands: a ragged blot, and flicks thrown out
-// from it (each a hairline tail ending in a teardrop)
-type Splash = { blot: [number, number][]; flicks: { a: number; off: number; len: number; r: number }[] }
+const LIFE = 5.2 // seconds from wet to gone
+const NIB = -Math.PI / 4 // a broad nib held at 45 degrees, as in calligraphy
+
+// The splash a nib leaves where it lands, sumi-e style: an uneven blot thrown
+// one way, flicks with ragged drops at their ends, and irregular spatter
+type Shape = [number, number][]
+type Splash = { blot: Shape; flicks: { tail: Shape; drop: Shape }[]; spatter: Shape[] }
+
+const rand = (a: number, b: number) => a + Math.random() * (b - a)
+
+// A rough, lopsided shape: a circle bent by a few random waves, then
+// stretched along `dir`, so no two drops are alike and none is round
+function blob(cx: number, cy: number, r: number, dir: number, stretch: number, rough = 0.35, n = 18): Shape {
+  const waves = Array.from({ length: 4 }, (_, i) => ({ k: i + 2, amp: rand(0.05, rough), ph: rand(0, Math.PI * 2) }))
+  const c = Math.cos(dir)
+  const s = Math.sin(dir)
+  const pts: Shape = []
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2
+    let rr = r * (1 + waves.reduce((sum, w) => sum + w.amp * Math.sin(w.k * a + w.ph), 0))
+    rr *= rand(0.92, 1.08)
+    const u = Math.cos(a) * rr * stretch
+    const v = Math.sin(a) * rr
+    pts.push([cx + u * c - v * s, cy + u * s + v * c])
+  }
+  return pts
+}
 
 function splashAt(): Splash {
-  // The blot: a rough circle whose edge bursts out in a few sharp spikes
-  const base = 4 + Math.random() * 3
-  const spikes = Array.from({ length: 5 + Math.floor(Math.random() * 5) }, () => ({ a: Math.random() * Math.PI * 2, l: 3 + Math.random() * 9 }))
-  const blot: [number, number][] = []
-  for (let i = 0; i < 48; i++) {
-    const a = (i / 48) * Math.PI * 2
-    let r = base * (0.85 + Math.random() * 0.25)
-    for (const sp of spikes) {
-      const d = Math.atan2(Math.sin(a - sp.a), Math.cos(a - sp.a))
-      r += sp.l * Math.exp(-((d / 0.09) ** 2))
+  const lean = rand(0, Math.PI * 2)
+  const base = rand(3.5, 7)
+  // The blot, uneven and thrown one way, with a few sharp tongues of ink
+  const blot = blob(0, 0, base, lean, rand(1.2, 1.8), 0.4, 40)
+  const tongues = Array.from({ length: 2 + Math.floor(Math.random() * 4) }, () => ({ a: lean + rand(-1.3, 1.3), l: rand(3, 14), w: rand(0.05, 0.16) }))
+  blot.forEach((p) => {
+    const a = Math.atan2(p[1], p[0])
+    let push = 0
+    for (const t of tongues) {
+      const d = Math.atan2(Math.sin(a - t.a), Math.cos(a - t.a))
+      push += t.l * Math.exp(-((d / t.w) ** 2))
     }
-    blot.push([Math.cos(a) * r, Math.sin(a) * r])
-  }
-  // The flicks: mostly thrown one way, as a flick of the pen would
-  const lean = Math.random() * Math.PI * 2
-  const flicks = Array.from({ length: 4 + Math.floor(Math.random() * 4) }, () => ({
-    a: lean + (Math.random() - 0.5) * 2.2,
-    off: base * (0.6 + Math.random() * 0.6),
-    len: 10 + Math.random() * 30,
-    r: 0.8 + Math.random() * 2,
-  }))
-  return { blot, flicks }
+    const len = Math.hypot(p[0], p[1]) || 1
+    p[0] += (p[0] / len) * push
+    p[1] += (p[1] / len) * push
+  })
+  // Flicks: a slightly curved hairline from the blot to a ragged drop
+  const flicks = Array.from({ length: 1 + Math.floor(Math.random() * 3) }, () => {
+    const a = lean + rand(-0.9, 0.9)
+    const from = base * rand(0.8, 1.2)
+    const to = from + rand(14, 42)
+    const bend = rand(-6, 6)
+    const c = Math.cos(a)
+    const s = Math.sin(a)
+    const r = rand(1.2, 2.8)
+    const mid = (from + to) / 2
+    const tail: Shape = [
+      [c * from - s * 0.5, s * from + c * 0.5],
+      [c * mid - s * (bend + r * 0.35), s * mid + c * (bend + r * 0.35)],
+      [c * to - s * r * 0.7, s * to + c * r * 0.7],
+      [c * to + s * r * 0.7, s * to - c * r * 0.7],
+      [c * mid - s * (bend - r * 0.35), s * mid + c * (bend - r * 0.35)],
+      [c * from + s * 0.5, s * from - c * 0.5],
+    ]
+    return { tail, drop: blob(c * to, s * to, r, a, rand(1.1, 1.7)) }
+  })
+  // Spatter: drops of very different sizes, most close, a few flung far
+  const spatter = Array.from({ length: 6 + Math.floor(Math.random() * 9) }, () => {
+    const a = Math.random() < 0.75 ? lean + rand(-1.4, 1.4) : rand(0, Math.PI * 2)
+    const d = base + Math.pow(Math.random(), 1.8) * 55
+    const r = Math.max(0.5, rand(0.4, 2.6) * (1 - d / 90))
+    return blob(Math.cos(a) * d, Math.sin(a) * d, r, a, rand(1, 2.2), 0.3, 9)
+  })
+  return { blot, flicks, spatter }
 }
-const NIB = -Math.PI / 4 // a broad nib held at 45 degrees, as in calligraphy
-const LIFE = 5.2 // seconds from wet to gone
 
 // Colour of the ink at an age (0 = just laid, 1 = gone): fiery yellow, warming
 // through ember to magma orange, which then fades away
@@ -120,53 +164,77 @@ export function Nudge() {
           ctx.shadowColor = `rgba(${r}, ${g}, ${bl}, ${al * 0.85})`
           ctx.shadowBlur = 8
           ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
-          const { blot, flicks } = head.splash
-          ctx.beginPath()
-          ctx.moveTo(blot[0]![0], blot[0]![1])
-          for (const [px, py] of blot) ctx.lineTo(px, py)
-          ctx.closePath()
-          ctx.fill()
-          // Each flick: a hairline from the blot that swells into a teardrop
-          for (const f of flicks) {
-            const c = Math.cos(f.a)
-            const sn = Math.sin(f.a)
-            const ex = c * (f.off + f.len)
-            const ey = sn * (f.off + f.len)
+          const { blot, flicks, spatter } = head.splash
+          // Every shape is traced through the midpoints of its corners, so edges are soft but never round
+          const trace = (pts: Shape) => {
+            const n = pts.length
             ctx.beginPath()
-            ctx.moveTo(c * f.off - sn * 0.4, sn * f.off + c * 0.4)
-            ctx.lineTo(ex - sn * f.r, ey + c * f.r)
-            ctx.arc(ex, ey, f.r, f.a + Math.PI / 2, f.a - Math.PI / 2, true)
-            ctx.lineTo(c * f.off + sn * 0.4, sn * f.off - c * 0.4)
+            ctx.moveTo((pts[n - 1]![0] + pts[0]![0]) / 2, (pts[n - 1]![1] + pts[0]![1]) / 2)
+            for (let i = 0; i < n; i++) {
+              const p = pts[i]!
+              const q = pts[(i + 1) % n]!
+              ctx.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2)
+            }
             ctx.closePath()
             ctx.fill()
           }
+          trace(blot)
+          for (const f of flicks) {
+            trace(f.tail)
+            trace(f.drop)
+          }
+          spatter.forEach(trace)
           ctx.restore()
         }
         if (st.length < 2) continue
-        // A tight glow first: the whole stroke as one path, lit by a short shadow
-        // of its own colour, so the light hugs the line instead of haloing it
-        ctx.save()
-        ctx.shadowColor = `rgba(${r}, ${g}, ${bl}, ${al * 0.85})`
-        ctx.shadowBlur = 8
-        ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
-        ctx.lineWidth = st.reduce((sum, d) => sum + d.w, 0) / st.length
-        ctx.beginPath()
-        ctx.moveTo(st[0]!.x, st[0]!.y)
-        for (let i = 1; i < st.length; i++) ctx.quadraticCurveTo(st[i - 1]!.x, st[i - 1]!.y, (st[i - 1]!.x + st[i]!.x) / 2, (st[i - 1]!.y + st[i]!.y) / 2)
-        ctx.stroke()
-        ctx.restore()
-        ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
+        // The path, smoothed: points along curves through the midpoints of the samples
+        const path: { x: number; y: number; w: number }[] = [st[0]!]
         for (let i = 1; i < st.length; i++) {
           const p0 = st[i - 1]!
           const p1 = st[i]!
           const z = st[i - 2]
-          ctx.beginPath()
-          ctx.moveTo(z ? (z.x + p0.x) / 2 : p0.x, z ? (z.y + p0.y) / 2 : p0.y)
-          ctx.quadraticCurveTo(p0.x, p0.y, (p0.x + p1.x) / 2, (p0.y + p1.y) / 2)
-          if (i === st.length - 1) ctx.lineTo(p1.x, p1.y)
-          ctx.lineWidth = p1.w
-          ctx.stroke()
+          const ax = z ? (z.x + p0.x) / 2 : p0.x
+          const ay = z ? (z.y + p0.y) / 2 : p0.y
+          const bx = (p0.x + p1.x) / 2
+          const by = (p0.y + p1.y) / 2
+          for (let k = 1; k <= 4; k++) {
+            const t = k / 4
+            const u = 1 - t
+            path.push({ x: u * u * ax + 2 * u * t * p0.x + t * t * bx, y: u * u * ay + 2 * u * t * p0.y + t * t * by, w: p0.w + (p1.w - p0.w) * t })
+          }
         }
+        path.push(st[st.length - 1]!)
+        // A broad, flat nib held at 45 degrees, swept along the path: every step
+        // adds the parallelogram the nib's edge passes over. Moving across the edge
+        // lays a full stroke, moving along it a hairline, and the ends come out
+        // cut on the angle, as with a real calligraphy pen. One fill, so nothing doubles
+        const nx = Math.cos(NIB)
+        const ny = Math.sin(NIB)
+        ctx.save()
+        ctx.shadowColor = `rgba(${r}, ${g}, ${bl}, ${al * 0.85})`
+        ctx.shadowBlur = 7
+        ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
+        ctx.beginPath()
+        for (let i = 1; i < path.length; i++) {
+          const p0 = path[i - 1]!
+          const p1 = path[i]!
+          const h0 = 6.5 * p0.w
+          const h1 = 6.5 * p1.w
+          ctx.moveTo(p0.x + nx * h0, p0.y + ny * h0)
+          ctx.lineTo(p1.x + nx * h1, p1.y + ny * h1)
+          ctx.lineTo(p1.x - nx * h1, p1.y - ny * h1)
+          ctx.lineTo(p0.x - nx * h0, p0.y - ny * h0)
+          ctx.closePath()
+        }
+        ctx.fill('nonzero')
+        ctx.restore()
+        // The hairline the nib's edge leaves, so the thinnest strokes never vanish
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
+        ctx.lineWidth = 1.2
+        ctx.beginPath()
+        ctx.moveTo(path[0]!.x, path[0]!.y)
+        for (const q of path) ctx.lineTo(q.x, q.y)
+        ctx.stroke()
       }
       ctx.globalCompositeOperation = 'source-over'
       if (dots.length) raf = requestAnimationFrame(draw)
@@ -174,8 +242,18 @@ export function Nudge() {
     const wake = () => (raf ||= requestAnimationFrame(draw))
 
     let on = false
+    // Five quiet seconds after the last stroke, the pad rests and invites again
+    let rest = 0
+    const restSoon = () => {
+      window.clearTimeout(rest)
+      rest = window.setTimeout(() => {
+        on = false
+        setActive(false)
+      }, 5000)
+    }
     const lay = (e: PointerEvent) => {
       if (!on || e.buttons === 0) return
+      restSoon()
       const r = c.getBoundingClientRect()
       const x = e.clientX - r.left
       const y = e.clientY - r.top
@@ -183,13 +261,10 @@ export function Nudge() {
       // A fresh stroke after a pause or a jump; otherwise faster means a thinner line
       const start = !last || t - last.t > 0.12 || Math.hypot(x - last.x, y - last.y) > 120
       const speed = last && !start ? Math.hypot(x - last.x, y - last.y) / Math.max(t - last.t, 1 / 240) : 0
-      // Calligraphy: across the nib's edge the line is full, along it a hairline;
-      // moving fast thins it a little more, as ink runs short
-      const ang = last && !start ? Math.atan2(y - last.y, x - last.x) : NIB + Math.PI / 2
-      const broad = Math.abs(Math.sin(ang - NIB))
-      const raw = (1.4 + 8 * broad) * Math.max(0.55, 1 - speed / 2600)
-      // Eased into the last width, so the line swells and thins smoothly
-      const w = last && !start ? last.w * 0.6 + raw * 0.4 : raw
+      // The nib's reach: full at a steady hand, a little less when moving fast,
+      // as the ink runs short; eased so the stroke never jumps in weight
+      const raw = Math.max(0.6, 1 - speed / 2600)
+      const w = last && !start ? last.w * 0.7 + raw * 0.3 : raw
       // Where the nib first touches, the ink splashes
       const splash = start ? splashAt() : undefined
       dots.push({ x, y, t, w, start, splash })
@@ -203,6 +278,7 @@ export function Nudge() {
         on = true
         setActive(true)
       }
+      restSoon()
       host.setPointerCapture(e.pointerId)
       last = null
       lay(e)
@@ -214,6 +290,7 @@ export function Nudge() {
     host.addEventListener('pointerup', lift)
     return () => {
       ro.disconnect()
+      window.clearTimeout(rest)
       cancelAnimationFrame(raf)
       host.removeEventListener('pointerdown', down)
       host.removeEventListener('pointermove', lay)
