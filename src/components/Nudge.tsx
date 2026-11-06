@@ -62,43 +62,41 @@ export function Nudge() {
     const draw = () => {
       raf = 0
       const now = performance.now() / 1000
-      while (dots.length && now - dots[0]!.t > LIFE) dots.shift()
+      // Strokes, each from its first point to the one before the next stroke starts
+      const strokes: Dot[][] = []
+      for (const d of dots) {
+        if (d.start || !strokes.length) strokes.push([d])
+        else strokes[strokes.length - 1]!.push(d)
+      }
+      // A whole stroke ages from the moment it was finished, and goes all at once
+      const kept = strokes.filter((st) => now - st[st.length - 1]!.t < LIFE)
+      dots.length = 0
+      kept.forEach((st) => dots.push(...st))
       ctx.clearRect(0, 0, c.clientWidth, c.clientHeight)
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
-      // Two passes: a soft wide glow, then the ink itself. Neighbouring points of
-      // about the same age are drawn as one continuous path, so nothing overlaps
-      // itself into beads; each run curves through the midpoints of its points
+      // Two passes: a soft wide glow, then the ink itself. Each stroke is one
+      // continuous path curving through the midpoints of its points, so the
+      // whole line cools and fades together, like ink drying
       for (const glow of [true, false]) {
         ctx.globalCompositeOperation = glow ? 'lighter' : 'source-over'
-        let i = 1
-        while (i < dots.length) {
-          if (dots[i]!.start) {
-            i++
-            continue
-          }
-          const bucket = Math.floor(((now - dots[i]!.t) / LIFE) * 28)
-          const age = Math.min(1, (bucket + 0.5) / 28)
+        for (const st of kept) {
+          if (st.length < 2) continue
+          const age = (now - st[st.length - 1]!.t) / LIFE
           const [r, g, bl, al] = inkAt(age)
           // Hot ink glows; the glow cools away faster than the ink fades
           const heat = Math.max(0, 1 - age * 2.2)
-          let w = 0
-          let n = 0
-          const a = dots[i - 1]!
-          const z = dots[i - 2]
-          const from = !a.start && z ? { x: (z.x + a.x) / 2, y: (z.y + a.y) / 2 } : a
-          ctx.beginPath()
-          ctx.moveTo(from.x, from.y)
-          while (i < dots.length && !dots[i]!.start && Math.floor(((now - dots[i]!.t) / LIFE) * 28) === bucket) {
-            const p0 = dots[i - 1]!
-            const p1 = dots[i]!
-            ctx.quadraticCurveTo(p0.x, p0.y, (p0.x + p1.x) / 2, (p0.y + p1.y) / 2)
-            w += p1.w
-            n++
-            i++
-          }
           if (glow && heat <= 0) continue
-          w /= Math.max(1, n)
+          const w = st.reduce((sum, d) => sum + d.w, 0) / st.length
+          ctx.beginPath()
+          ctx.moveTo(st[0]!.x, st[0]!.y)
+          for (let i = 1; i < st.length; i++) {
+            const p0 = st[i - 1]!
+            const p1 = st[i]!
+            ctx.quadraticCurveTo(p0.x, p0.y, (p0.x + p1.x) / 2, (p0.y + p1.y) / 2)
+          }
+          const end = st[st.length - 1]!
+          ctx.lineTo(end.x, end.y)
           ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${glow ? al * heat * 0.3 : al})`
           ctx.lineWidth = glow ? w * 3 : w * (1 - age * 0.25)
           ctx.stroke()
