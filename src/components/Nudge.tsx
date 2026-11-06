@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { site } from '../content'
+import { useEffect, useRef, useState } from 'react'
 
-// The sign-off at the foot of the page: an invitation set as wide as the page,
-// with the things I've made stuck around it. Point at them and they shy away
-// on springs, turning a little as they go, then settle back.
+// The foot of the page is a pad of ink. It invites you to build something;
+// tap it and it switches on, then press and drag to draw. Each
+// stroke starts ember-hot, cools through magma to deep red, then dries and
+// fades. The things I've made are stuck on top; point at them and they shy
+// away on springs, turning a little as they go, then settle back.
 
 type Item = { label?: string; x: number; y: number; r: number; dot?: boolean; k?: number }
 const ITEMS: Item[] = [
@@ -12,46 +13,141 @@ const ITEMS: Item[] = [
   { dot: true, x: 22, y: 78, r: 0, k: 1.4 },
   { label: 'Folio', x: 47, y: 84, r: -5 },
   { label: 'Glass Home', x: 68, y: 10, r: 7, k: 0.9 },
-  { dot: true, x: 60, y: 46, r: 0, k: 1.5 },
+  { dot: true, x: 78, y: 62, r: 0, k: 1.5 },
   { label: 'byperraz', x: 84, y: 94, r: -6, k: 1.1 },
   { label: 'Aegis, soon', x: 92, y: 4, r: 9, k: 0.8 },
 ]
 
-// Trying the other sign-off: /?signoff=clock shows my time in Mumbai, live
-const CLOCK = typeof location !== 'undefined' && new URLSearchParams(location.search).get('signoff') === 'clock'
-const hhmm = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: site.timezone }).format(new Date()).split(':') as [string, string]
+// A point on a stroke: where, when it was laid, and how wide the brush was there
+type Dot = { x: number; y: number; t: number; w: number; start: boolean }
+const LIFE = 5.2 // seconds from wet to gone
+
+// Colour of the ink at an age (0 = just laid, 1 = gone): ember, magma, deep red, dry
+function inkAt(age: number): [number, number, number, number] {
+  const k = Math.min(1, age)
+  const stops: [number, number, number][] = [[255, 178, 56], [246, 68, 14], [179, 38, 30], [90, 30, 22]]
+  const f = Math.min(stops.length - 1.001, k * (stops.length - 1) * 1.15)
+  const i = Math.floor(f)
+  const t = f - i
+  const c = stops[i]!.map((v, j) => Math.round(v + (stops[i + 1]![j]! - v) * t)) as [number, number, number]
+  return [...c, k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3]
+}
 
 export function Nudge() {
   const root = useRef<HTMLDivElement>(null)
-  const [time, setTime] = useState(hhmm)
-  const word = useRef<HTMLParagraphElement>(null)
+  const pad = useRef<HTMLCanvasElement>(null)
   const els = useRef<(HTMLSpanElement | null)[]>([])
+  const [active, setActive] = useState(false)
 
-  // The name fills the width exactly
-  useLayoutEffect(() => {
-    const w = word.current!
-    const fit = () => {
-      w.style.fontSize = '100px'
-      const natural = w.offsetWidth
-      const room = root.current!.clientWidth
-      // The time alone is short: it takes most of the width and leaves room for its caption
-      w.style.fontSize = `${(room * (CLOCK ? 0.7 : 0.99) * 100) / Math.max(1, natural)}px`
-    }
-    fit()
-    document.fonts.ready.then(fit)
-    const ro = new ResizeObserver(fit)
-    ro.observe(root.current!)
-    return () => ro.disconnect()
-  }, [time])
-
-  // The clock checks every few seconds and only changes when the minute does
+  // Drawing: nothing on hover. A tap switches the pad on; then pressing and
+  // dragging (mouse held, or a finger) lays ink
   useEffect(() => {
-    if (!CLOCK) return
-    const id = setInterval(() => setTime((t) => {
-      const n = hhmm()
-      return n[0] === t[0] && n[1] === t[1] ? t : n
-    }), 5000)
-    return () => clearInterval(id)
+    const host = root.current!
+    const c = pad.current!
+    const ctx = c.getContext('2d')!
+    const dpr = Math.min(devicePixelRatio || 1, 2)
+    const dots: Dot[] = []
+    let raf = 0
+    let last: { x: number; y: number; t: number } | null = null
+
+    const size = () => {
+      c.width = Math.round(c.clientWidth * dpr)
+      c.height = Math.round(c.clientHeight * dpr)
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+    size()
+    const ro = new ResizeObserver(size)
+    ro.observe(c)
+
+    const draw = () => {
+      raf = 0
+      const now = performance.now() / 1000
+      while (dots.length && now - dots[0]!.t > LIFE) dots.shift()
+      ctx.clearRect(0, 0, c.clientWidth, c.clientHeight)
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      // Two passes: a soft wide glow, then the ink itself. Neighbouring points of
+      // about the same age are drawn as one continuous path, so nothing overlaps
+      // itself into beads; each run curves through the midpoints of its points
+      for (const glow of [true, false]) {
+        ctx.globalCompositeOperation = glow ? 'lighter' : 'source-over'
+        let i = 1
+        while (i < dots.length) {
+          if (dots[i]!.start) {
+            i++
+            continue
+          }
+          const bucket = Math.floor(((now - dots[i]!.t) / LIFE) * 28)
+          const age = Math.min(1, (bucket + 0.5) / 28)
+          const [r, g, bl, al] = inkAt(age)
+          // Hot ink glows; the glow cools away faster than the ink fades
+          const heat = Math.max(0, 1 - age * 2.2)
+          let w = 0
+          let n = 0
+          const a = dots[i - 1]!
+          const z = dots[i - 2]
+          const from = !a.start && z ? { x: (z.x + a.x) / 2, y: (z.y + a.y) / 2 } : a
+          ctx.beginPath()
+          ctx.moveTo(from.x, from.y)
+          while (i < dots.length && !dots[i]!.start && Math.floor(((now - dots[i]!.t) / LIFE) * 28) === bucket) {
+            const p0 = dots[i - 1]!
+            const p1 = dots[i]!
+            ctx.quadraticCurveTo(p0.x, p0.y, (p0.x + p1.x) / 2, (p0.y + p1.y) / 2)
+            w += p1.w
+            n++
+            i++
+          }
+          if (glow && heat <= 0) continue
+          w /= Math.max(1, n)
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${glow ? al * heat * 0.3 : al})`
+          ctx.lineWidth = glow ? w * 3 : w * (1 - age * 0.25)
+          ctx.stroke()
+        }
+      }
+      ctx.globalCompositeOperation = 'source-over'
+      if (dots.length) raf = requestAnimationFrame(draw)
+    }
+    const wake = () => (raf ||= requestAnimationFrame(draw))
+
+    let on = false
+    const lay = (e: PointerEvent) => {
+      if (!on || e.buttons === 0) return
+      const r = c.getBoundingClientRect()
+      const x = e.clientX - r.left
+      const y = e.clientY - r.top
+      const t = performance.now() / 1000
+      // A fresh stroke after a pause or a jump; otherwise faster means a thinner line
+      const start = !last || t - last.t > 0.12 || Math.hypot(x - last.x, y - last.y) > 120
+      const speed = last && !start ? Math.hypot(x - last.x, y - last.y) / Math.max(t - last.t, 1 / 240) : 0
+      const w = Math.max(4, Math.min(16, 16 - speed / 180))
+      dots.push({ x, y, t, w, start })
+      if (dots.length > 1600) dots.splice(0, dots.length - 1600)
+      last = { x, y, t }
+      wake()
+    }
+    const down = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      if (!on) {
+        on = true
+        setActive(true)
+      }
+      host.setPointerCapture(e.pointerId)
+      last = null
+      lay(e)
+    }
+    const lift = () => void (last = null)
+    host.addEventListener('pointerdown', down)
+    host.addEventListener('pointermove', lay)
+    host.addEventListener('pointerleave', lift)
+    host.addEventListener('pointerup', lift)
+    return () => {
+      ro.disconnect()
+      cancelAnimationFrame(raf)
+      host.removeEventListener('pointerdown', down)
+      host.removeEventListener('pointermove', lay)
+      host.removeEventListener('pointerleave', lift)
+      host.removeEventListener('pointerup', lift)
+    }
   }, [])
 
   useEffect(() => {
@@ -125,17 +221,12 @@ export function Nudge() {
   }, [])
 
   return (
-    <div ref={root} className="nudge" aria-hidden="true">
-      {CLOCK ? (
-        <div className="nudge__clock">
-          <p ref={word} className="nudge__word">
-            {time[0]}<span className="nudge__colon">:</span>{time[1]}
-          </p>
-          <p className="nudge__caption">in Mumbai,<br />right now</p>
-        </div>
-      ) : (
-        <p ref={word} className="nudge__word">Let’s build<span className="accent">.</span></p>
-      )}
+    <div ref={root} className="nudge" aria-hidden="true" data-active={active || undefined}>
+      <canvas ref={pad} className="nudge__pad" />
+      <div className="nudge__hint" data-gone={active || undefined}>
+        <p>Let’s build something</p>
+        <span>Tap to draw</span>
+      </div>
       {ITEMS.map((it, i) => (
         <span
           key={i}
