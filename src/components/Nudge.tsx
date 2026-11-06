@@ -373,7 +373,7 @@ export function Nudge() {
     <div ref={root} className="nudge" aria-hidden="true" data-active={active || undefined}>
       <canvas ref={pad} className="nudge__pad" />
       <div className="nudge__hint" data-gone={active || undefined}>
-        <p>Let’s build something</p>
+        <p>Let’s build<span className="accent">.</span></p>
         <span>Tap to draw</span>
       </div>
       {ITEMS.map((it, i) => (

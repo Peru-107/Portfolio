@@ -763,6 +763,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 .nudge[data-active] { cursor: crosshair; touch-action: none; }
 .nudge__hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; width: max-content; max-width: 86%; text-align: center; transition: opacity 0.5s, transform 0.6s var(--ease-out); }
 .nudge__hint p { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5.4vw, 92px); line-height: 0.94; letter-spacing: -0.032em; color: var(--magma); }
+.nudge__hint .accent { color: var(--paper); }
 .nudge__hint span { display: inline-block; margin-top: 14px; font-size: var(--fs-ui); font-weight: 500; color: var(--ash); opacity: 0.35; animation: hint-breathe 3.2s ease-in-out infinite; }
 /* A quiet hint: it breathes in and out, never louder than a whisper */
 @keyframes hint-breathe { 50% { opacity: 0.65; } }
