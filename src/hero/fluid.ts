@@ -179,14 +179,6 @@ const DISPLAY = head + /* glsl */ `
 
   void main() {
     vec2 uv = warp(vUv);
-    if (lava > 0.5) {
-      // The name is a window onto the lava; the pointer's trail swirls both
-      float lm = smoothstep(0.42, 0.58, texture2D(uMask, uv * maskXf.x + maskXf.yz).r) * reveal;
-      vec3 lc = mix(paper, molten(uv), lm);
-      lc += (hash(vUv * 900.0 + time) - 0.5) * 0.024;
-      gl_FragColor = vec4(clamp(lc, 0.0, 1.0), 1.0);
-      return;
-    }
     vec2 vel = texture2D(uVelocity, uv).xy;
     // The flow nudges the letter's edge, so it sways with the ink
     float m = texture2D(uMask, (uv + vel * 0.000025) * maskXf.x + maskXf.yz).r;
@@ -200,7 +192,9 @@ const DISPLAY = head + /* glsl */ `
     vec3 n = normalize(vec3((dl - dr) * 2.2, (db - dt) * 2.2, 1.0));
     float spec = pow(max(dot(n, normalize(vec3(-0.4, 0.6, 0.7))), 0.0), 18.0);
 
-    vec3 inside = paper - dye - vec3(0.07);
+    // With lava, the letters are molten rock and the ink flows over it like
+    // smoke over embers: the lava glows wherever the ink is thin
+    vec3 inside = lava > 0.5 ? molten(uv) - dye * 0.6 : paper - dye - vec3(0.07);
     inside += spec * 0.22 * smoothstep(0.15, 0.9, length(dye));
     vec3 out_ = paper - dye * outside;
     vec3 col = mix(out_, inside, mask);
@@ -222,7 +216,7 @@ export type InkOptions = {
   paper: [number, number, number]
   inks: [number, number, number][]
   reducedMotion: boolean
-  /** Molten rock inside the letters instead of a running ink simulation */
+  /** Molten rock inside the letters, glowing through the ink that flows over them */
   lava?: boolean
 }
 
@@ -267,7 +261,7 @@ export class InkField {
   private warpBurst = [0, 0, 0]
   private queue: { x: number; y: number; dx: number; dy: number; color: [number, number, number]; r: number }[] = []
   reveal = 0
-  /** How much ink shows outside the shapes (trails); 0.1 keeps it subtle */
+  /** How much ink shows outside the shapes (trails); about a third reads clearly without crowding the name */
   set edges(on: boolean) {
     this.mats.display!.uniforms.edges!.value = on ? 1 : 0
   }
@@ -305,7 +299,7 @@ export class InkField {
     m('gradient', GRADIENT, { uPressure: tex(), uVelocity: tex() })
     m('fade', FADE, { uTexture: tex(), value: { value: 0.8 } })
     m('flood', FLOOD, { uTarget: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, color: { value: [0, 0, 0] } })
-    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst }, lava: { value: o.lava ? 1 : 0 } })
+    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.32 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst }, lava: { value: o.lava ? 1 : 0 } })
 
     this.resize()
   }
@@ -511,14 +505,6 @@ export class InkField {
       const per = 1 / Math.max(real, 1 / 120)
       this.trail.set([p.x, p.y, p.dx * per * (this.dyeW / this.dyeH), p.dy * per], 0)
       this.trailK[0] = 1
-    }
-    // Lava mode: no ink to simulate, only the warp and the molten pattern to draw
-    if (this.o.lava) {
-      p.moved = false
-      this.queue.length = 0
-      this.pass('display', null, { uDye: this.dye.read.texture, uVelocity: this.vel.read.texture, dyeTexel: [1 / this.dyeW, 1 / this.dyeH], time: this.t * 2, reveal: this.reveal }, [this.dyeW, this.dyeH])
-      if (this.running) this.raf = requestAnimationFrame(this.frame)
-      return
     }
     if (p.moved) {
       p.moved = false

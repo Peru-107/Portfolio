@@ -815,3 +815,19 @@ h1[tabindex="-1"]:focus { outline: none; }
 .w2__media > .media > img, .w2__media .media__video { object-fit: contain; object-position: center; }
 .case__stage > .media { aspect-ratio: auto; max-height: none; }
 .case__stage > .media > img, .case__stage .media__video { width: 100%; height: auto; max-height: 82vh; object-fit: contain; object-position: center; }
+
+/* Home index: a line per section down the left edge (wide screens only) */
+.sidenav { position: fixed; left: 14px; top: 50%; transform: translateY(-50%); z-index: 80; opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0.4s; }
+.sidenav[data-on] { opacity: 1; visibility: visible; }
+.sidenav ol { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.sidenav a { display: flex; align-items: center; gap: 12px; min-height: 28px; color: var(--ink); font-size: var(--fs-caption); font-weight: 500; }
+.sidenav i { display: block; width: 14px; height: 2px; background: currentColor; opacity: 0.35; transition: width 0.4s var(--ease-out), opacity 0.3s, background-color 0.3s; }
+.sidenav span { opacity: 0; transform: translateX(-6px); transition: opacity 0.3s, transform 0.4s var(--ease-out); white-space: nowrap; }
+.sidenav a[aria-current] i { width: 28px; opacity: 1; background: var(--magma-text); }
+.sidenav:hover span, .sidenav a:focus-visible span { opacity: 1; transform: none; }
+.sidenav:hover a { background: color-mix(in srgb, var(--paper) 88%, transparent); padding-right: 10px; }
+.sidenav a:hover i { opacity: 1; width: 22px; }
+.sidenav[data-dark] a { color: var(--paper); }
+.sidenav[data-dark] a[aria-current] i { background: var(--magma); }
+.sidenav[data-dark]:hover a { background: color-mix(in srgb, var(--ink) 88%, transparent); }
+@media (max-width: 1099px) { .sidenav { display: none; } }

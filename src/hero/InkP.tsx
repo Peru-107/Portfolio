@@ -7,14 +7,15 @@ import { gsap } from '../lib/motion'
 // display face itself, so the letter is the site's own type, not a model.
 
 const PAPER: [number, number, number] = [0.914, 0.925, 0.937]
-// Each ink is what it absorbs from paper: magma, ember, hot yellow, deep red
-// and a dark molten red (drops from the typewriter use these)
+// Each ink is what it absorbs from paper. Mostly warm and bright (magma,
+// ember, hot yellow, deep red) with one charcoal, so the smoke around the
+// name reads as fire and ink together rather than grey
 const INKS: [number, number, number][] = [
   [0.0, 0.66, 0.88],
   [0.0, 0.23, 0.72],
-  [0.21, 0.78, 0.82],
+  [0.62, 0.6, 0.58],
   [0.0, 0.1, 0.54],
-  [0.56, 0.82, 0.88],
+  [0.21, 0.78, 0.82],
   [0.0, 0.6, 0.87],
 ]
 // The solid word the loader hands over
