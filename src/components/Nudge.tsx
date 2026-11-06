@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
-import { site } from '../content'
 
-// The signature at the foot of the page: the name set as wide as the page,
+// The sign-off at the foot of the page: an invitation set as wide as the page,
 // with the things I've made stuck around it. Point at them and they shy away
 // on springs, turning a little as they go, then settle back.
 
@@ -13,8 +12,8 @@ const ITEMS: Item[] = [
   { label: 'Folio', x: 47, y: 84, r: -5 },
   { label: 'Glass Home', x: 68, y: 10, r: 7, k: 0.9 },
   { dot: true, x: 60, y: 46, r: 0, k: 1.5 },
-  { label: 'byperraz', x: 86, y: 74, r: -6, k: 1.1 },
-  { label: 'Aegis, soon', x: 92, y: 22, r: 9, k: 0.8 },
+  { label: 'byperraz', x: 84, y: 94, r: -6, k: 1.1 },
+  { label: 'Aegis, soon', x: 92, y: 4, r: 9, k: 0.8 },
 ]
 
 export function Nudge() {
@@ -110,7 +109,7 @@ export function Nudge() {
 
   return (
     <div ref={root} className="nudge" aria-hidden="true">
-      <p ref={word} className="nudge__word">{site.name}</p>
+      <p ref={word} className="nudge__word">Let’s build<span className="accent">.</span></p>
       {ITEMS.map((it, i) => (
         <span
           key={i}
