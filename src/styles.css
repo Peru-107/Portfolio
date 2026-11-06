@@ -251,7 +251,7 @@ button { font: inherit; color: inherit; }
 .case__brief p, .case__outcome p { font-family: var(--display); font-weight: 500; font-size: clamp(22px, 2.5vw, 40px); line-height: 1.2; letter-spacing: -0.01em; max-width: 30ch; }
 .case__did li { font-size: var(--fs-h3); font-weight: 500; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .case__next { display: block; padding: clamp(80px, 14vh, 160px) 0; }
-.case__next span { font-size: var(--fs-ui); font-weight: 600; color: var(--ink-soft); }
+.case__next > span { font-size: var(--fs-ui); font-weight: 600; color: var(--ink-soft); }
 .case__next strong { display: block; margin-top: 12px; font-family: var(--display); font-weight: 800; font-size: clamp(44px, 9vw, 160px); line-height: 0.95; letter-spacing: -0.035em; transition: color 0.35s, transform 0.6s var(--ease-out); }
 .case__next:hover strong { transform: translateX(1.5vw); }
 .case--missing { min-height: 80vh; }
@@ -754,9 +754,6 @@ h1[tabindex="-1"]:focus { outline: none; }
 .totop[data-on] { opacity: 1; visibility: visible; transform: none; }
 .totop[data-dark] { background: var(--paper); color: var(--ink); }
 
-/* Contact: molten ink underneath; everything else sits above it */
-.contact { position: relative; isolation: isolate; overflow: hidden; }
-.lava { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; display: block; }
 
 /* The signature: the name across the page, stickers that shy from the pointer */
 .nudge { position: relative; margin-top: clamp(80px, 14vh, 160px); user-select: none; }
@@ -775,8 +772,9 @@ h1[tabindex="-1"]:focus { outline: none; }
 .case__zoomwrap { margin: clamp(8px, 2vh, 24px) calc(-1 * var(--gutter)) 0; }
 .case__zoom { position: relative; height: 100vh; height: 100svh; display: grid; justify-items: center; align-items: start; overflow: clip; }
 .case__zoom .case__stage { width: calc(100% - 2 * var(--gutter)); margin: 0; transform: scale(0.6); will-change: transform; }
-.case__flank { position: absolute; top: 30%; transform: translateY(-50%); font-family: var(--display); font-weight: 800; font-size: clamp(20px, 2.9vw, 64px); line-height: 0.94; letter-spacing: -0.032em; pointer-events: none; max-width: calc(20% - var(--gutter)); }
+.case__flank { position: absolute; top: 30%; transform: translateY(-50%); font-family: var(--display); font-weight: 800; line-height: 0.94; letter-spacing: -0.032em; pointer-events: none; white-space: nowrap; }
 .case__flank--l { left: var(--gutter); }
+.case__flank--r { text-align: right; }
 .case__flank--r { right: var(--gutter); color: var(--magma-text); }
 @media (max-width: 759px) {
   .case__zoom .case__stage { transform: scale(0.86); }
@@ -804,3 +802,16 @@ h1[tabindex="-1"]:focus { outline: none; }
 .depth__nav button:disabled { opacity: 0.25; cursor: default; }
 .depth__nav svg { width: 20px; height: 20px; }
 @media (max-width: 759px) { .depth__card { width: 74%; } }
+
+/* Covers made of a row of screens keep every screen whole: the row takes a
+   height the screens can fit in, rather than a 16:9 box that cuts them */
+.case__stage > .media.media--row { aspect-ratio: auto; height: min(72vh, 46vw); max-height: none; }
+.case__stage > .media.media--row img { height: 100%; max-height: 100%; }
+
+/* No picture is ever cut: screens keep their own shape everywhere, and a
+   frame shows paper around a picture that is a different shape from it */
+.media--row[data-shape='phone'] img { aspect-ratio: auto; object-fit: contain; }
+.w2__media { background: var(--paper-2); }
+.w2__media > .media > img, .w2__media .media__video { object-fit: contain; object-position: center; }
+.case__stage > .media { aspect-ratio: auto; max-height: none; }
+.case__stage > .media > img, .case__stage .media__video { width: 100%; height: auto; max-height: 82vh; object-fit: contain; object-position: center; }

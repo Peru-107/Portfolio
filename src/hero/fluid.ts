@@ -120,6 +120,7 @@ const DISPLAY = head + /* glsl */ `
   uniform vec3 paper; uniform vec2 dyeTexel; uniform float time; uniform float outside; uniform float reveal; uniform float edges;
   // The pointer's recent path: position and velocity (xy, zw), and how much each point still pulls
   uniform vec4 trail[12]; uniform vec4 trailK[3]; uniform vec3 warpBurst;
+  uniform float lava;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   // Cheap smooth noise for an organic wobble in the swirl
   float wob(vec2 p) { return sin(p.x * 3.1 + sin(p.y * 2.3 + time)) * cos(p.y * 2.7 - sin(p.x * 1.9 - time * 0.8)); }
@@ -156,8 +157,36 @@ const DISPLAY = head + /* glsl */ `
     return uv - vec2(swirl.x / aspect, swirl.y);
   }
 
+  // Molten rock: the space folded over itself again and again, a dark crust
+  // with veins of deep red, magma and ember where the field crosses zero
+  vec3 molten(vec2 uv) {
+    float aspect = dyeTexel.y / dyeTexel.x;
+    vec2 q = (uv - 0.5) * vec2(aspect, 1.0) * 2.6;
+    float k = time * 0.36;
+    for (float i = 1.0; i < 9.0; i++) {
+      q.x += 0.55 / i * sin(i * 1.7 * q.y + k + i * 0.9);
+      q.y += 0.45 / i * cos(i * 1.3 * q.x - k * 0.8 + i * 1.7);
+    }
+    float f = sin(q.x * 1.4 + q.y * 0.8 + k * 0.6);
+    float vein = 1.0 - smoothstep(0.0, 0.6, abs(f));
+    float core = 1.0 - smoothstep(0.0, 0.14, abs(f));
+    vec3 col = vec3(0.129, 0.145, 0.161);
+    col = mix(col, vec3(0.70, 0.15, 0.12), vein * 0.7);
+    col = mix(col, vec3(0.965, 0.267, 0.055), pow(vein, 2.2) * 0.9);
+    col = mix(col, vec3(1.0, 0.70, 0.22), core * 0.7);
+    return col;
+  }
+
   void main() {
     vec2 uv = warp(vUv);
+    if (lava > 0.5) {
+      // The name is a window onto the lava; the pointer's trail swirls both
+      float lm = smoothstep(0.42, 0.58, texture2D(uMask, uv * maskXf.x + maskXf.yz).r) * reveal;
+      vec3 lc = mix(paper, molten(uv), lm);
+      lc += (hash(vUv * 900.0 + time) - 0.5) * 0.024;
+      gl_FragColor = vec4(clamp(lc, 0.0, 1.0), 1.0);
+      return;
+    }
     vec2 vel = texture2D(uVelocity, uv).xy;
     // The flow nudges the letter's edge, so it sways with the ink
     float m = texture2D(uMask, (uv + vel * 0.000025) * maskXf.x + maskXf.yz).r;
@@ -193,6 +222,8 @@ export type InkOptions = {
   paper: [number, number, number]
   inks: [number, number, number][]
   reducedMotion: boolean
+  /** Molten rock inside the letters instead of a running ink simulation */
+  lava?: boolean
 }
 
 export class InkField {
@@ -274,7 +305,7 @@ export class InkField {
     m('gradient', GRADIENT, { uPressure: tex(), uVelocity: tex() })
     m('fade', FADE, { uTexture: tex(), value: { value: 0.8 } })
     m('flood', FLOOD, { uTarget: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, color: { value: [0, 0, 0] } })
-    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst } })
+    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.1 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst }, lava: { value: o.lava ? 1 : 0 } })
 
     this.resize()
   }
@@ -480,6 +511,14 @@ export class InkField {
       const per = 1 / Math.max(real, 1 / 120)
       this.trail.set([p.x, p.y, p.dx * per * (this.dyeW / this.dyeH), p.dy * per], 0)
       this.trailK[0] = 1
+    }
+    // Lava mode: no ink to simulate, only the warp and the molten pattern to draw
+    if (this.o.lava) {
+      p.moved = false
+      this.queue.length = 0
+      this.pass('display', null, { uDye: this.dye.read.texture, uVelocity: this.vel.read.texture, dyeTexel: [1 / this.dyeW, 1 / this.dyeH], time: this.t * 2, reveal: this.reveal }, [this.dyeW, this.dyeH])
+      if (this.running) this.raf = requestAnimationFrame(this.frame)
+      return
     }
     if (p.moved) {
       p.moved = false

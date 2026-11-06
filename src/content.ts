@@ -105,6 +105,8 @@ export type Project = {
   did: string[]
   stack: string
   result: string
+  /** Two words either side of the cover while it waits to zoom: what it is, in brief */
+  zoom: [string, string]
   link?: { label: string; href: string }
   tone: 'clay' | 'ink' | 'pine' | 'night' | 'paper' | 'ember'
   cover: Media
@@ -116,6 +118,7 @@ export type Project = {
 export const projects: Project[] = [
   {
     slug: 'cube',
+    zoom: ['Campus', 'life'],
     title: 'CUBE',
     kind: 'College companion app',
     year: '2026',
@@ -142,6 +145,7 @@ export const projects: Project[] = [
   },
   {
     slug: 'nextup',
+    zoom: ['Saved', 'done'],
     title: 'Nextup',
     kind: 'Web app and Chrome extension',
     year: '2026',
@@ -164,6 +168,7 @@ export const projects: Project[] = [
   },
   {
     slug: 'folio',
+    zoom: ['Read', 'daily'],
     title: 'Folio',
     kind: 'Reading companion',
     year: '2026',
@@ -186,6 +191,7 @@ export const projects: Project[] = [
   },
   {
     slug: 'glass-home',
+    zoom: ['Calm', 'TV'],
     title: 'Glass Home',
     kind: 'Android TV home screen',
     year: '2026',
@@ -211,6 +217,7 @@ export const projects: Project[] = [
   },
   {
     slug: 'byperraz',
+    zoom: ['Ideas', 'posts'],
     title: 'byperraz engine',
     kind: 'Content studio for my Instagram',
     year: '2026',

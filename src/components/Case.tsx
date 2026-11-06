@@ -43,16 +43,30 @@ export function Case({ slug }: { slug: string }) {
       const zoom = root.current?.querySelector<HTMLElement>('.case__zoom')
       const stage = zoom?.querySelector<HTMLElement>('.case__stage')
       if (!zoom || !stage) return
-      const cover = () => Math.max(innerWidth / stage.offsetWidth, innerHeight / stage.offsetHeight) * 1.002
+      // Grows as large as the screen allows while staying whole: nothing is ever cut
+      const cover = () => Math.min(innerWidth / stage.offsetWidth, innerHeight / stage.offsetHeight)
       // The words sit level with the cover's middle while it waits at the top of the band
       const flanks = zoom.querySelectorAll<HTMLElement>('.case__flank')
-      const level = () => flanks.forEach((f) => (f.style.top = `${stage.offsetHeight / 2}px`))
+      const start = () => (innerWidth < 760 ? 0.86 : 0.6)
+      // Each word sits level with the cover's middle and is sized to the room beside it, on one line
+      const level = () => {
+        // Room between the page margin (where the words start) and the waiting cover, less a clear gap
+        const room = (zoom.clientWidth - stage.offsetWidth * start()) / 2 - (flanks[0]?.offsetLeft ?? 0) - 32
+        let widest = 0
+        flanks.forEach((f) => {
+          f.style.top = `${stage.offsetHeight / 2}px`
+          f.style.fontSize = '100px'
+          widest = Math.max(widest, f.scrollWidth)
+        })
+        const size = Math.max(16, Math.min(72, (100 * room) / Math.max(1, widest)))
+        flanks.forEach((f) => (f.style.fontSize = `${size}px`))
+      }
       level()
       const st = { trigger: zoom, start: 'top top', end: '+=110%', scrub: true, invalidateOnRefresh: true }
       // Waits small just under the summary, then travels to the middle as it grows to fill the screen
       gsap.fromTo(
         stage,
-        { scale: () => (innerWidth < 760 ? 0.86 : 0.6), y: 0 },
+        { scale: start, y: 0 },
         { scale: cover, y: () => (zoom.offsetHeight - stage.offsetHeight) / 2, ease: 'none', scrollTrigger: { ...st, pin: true, onRefreshInit: level } },
       )
       gsap.to(zoom.querySelector('.case__flank--l'), { xPercent: -70, autoAlpha: 0, ease: 'none', scrollTrigger: { ...st, end: '+=55%' } })
@@ -116,7 +130,6 @@ export function Case({ slug }: { slug: string }) {
       <Depth shots={shots} label={`${p.title} screens`} />
     </section>
   ))
-  const [lead, ...rest] = p.role.split(' ')
 
   return (
     <>
@@ -137,11 +150,11 @@ export function Case({ slug }: { slug: string }) {
         <p className="case__outcome-lead" data-reveal="fade">{p.summary}</p>
         <div className="pin-wrap case__zoomwrap">
           <div className="case__zoom">
-            <span className="case__flank case__flank--l" aria-hidden="true">{lead}</span>
+            <span className="case__flank case__flank--l" aria-hidden="true">{p.zoom[0]}</span>
             <div className="case__stage">
               <Media m={p.cover} priority />
             </div>
-            <span className="case__flank case__flank--r" aria-hidden="true">{rest.join(' ')}</span>
+            <span className="case__flank case__flank--r" aria-hidden="true">{p.zoom[1]}</span>
           </div>
         </div>
         <div className="case__body">

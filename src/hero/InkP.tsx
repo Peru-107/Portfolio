@@ -7,15 +7,18 @@ import { gsap } from '../lib/motion'
 // display face itself, so the letter is the site's own type, not a model.
 
 const PAPER: [number, number, number] = [0.914, 0.925, 0.937]
-// Each ink is what it absorbs from paper: charcoal, magma, ember, deep red
+// Each ink is what it absorbs from paper: magma, ember, hot yellow, deep red
+// and a dark molten red (drops from the typewriter use these)
 const INKS: [number, number, number][] = [
-  [0.74, 0.73, 0.72],
   [0.0, 0.66, 0.88],
-  [0.0, 0.22, 0.7],
-  [0.72, 0.72, 0.71],
-  [0.2, 0.82, 0.82],
+  [0.0, 0.23, 0.72],
+  [0.21, 0.78, 0.82],
+  [0.0, 0.1, 0.54],
+  [0.56, 0.82, 0.88],
   [0.0, 0.6, 0.87],
 ]
+// The solid word the loader hands over
+const FLOOD: [number, number, number] = [0.965, 0.267, 0.055]
 
 type Layout = 'hero' | 'center' | 'wordmark'
 type Box = { x: number; y: number; w: number; h: number }
@@ -99,7 +102,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     let alive = true
     try {
       drawMask(mask, c.clientWidth, c.clientHeight, text, layout, rest)
-      f = new InkField({ canvas: c, mask, paper: PAPER, inks: INKS, reducedMotion: reduced })
+      f = new InkField({ canvas: c, mask, paper: PAPER, inks: INKS, reducedMotion: reduced, lava: true })
     } catch {
       fallback.current?.setAttribute('data-on', '')
       return
@@ -311,7 +314,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     if (w.__inkHandoff) {
       w.__inkHandoff = false
       f.reveal = 1
-      f.flood([0.129, 0.145, 0.161])
+      f.flood(FLOOD)
       w.__inkFlooded = true
       const t = window.setTimeout(() => f.pour(), 220)
       return () => window.clearTimeout(t)

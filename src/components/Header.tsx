@@ -43,6 +43,8 @@ function useOverDark() {
 // Past the top it sits on its own bar, so no big title can run through it
 function useBar() {
   const [bar, setBar] = useState<'top' | 'shown' | 'hidden'>('top')
+  // Far enough down that a way back up is worth offering (clear of the hero's own links)
+  const [far, setFar] = useState(false)
   useEffect(() => {
     let last = scrollY
     let raf = 0
@@ -52,6 +54,8 @@ function useBar() {
       const next = y < 60 ? 'top' : y > last + 4 ? 'hidden' : y < last - 4 ? 'shown' : null
       if (Math.abs(y - last) > 4 || y < 60) last = y
       if (next) setBar((b) => (b === next ? b : next))
+      const isFar = y > innerHeight * 2.5
+      setFar((f) => (f === isFar ? f : isFar))
     }
     const on = () => (raf ||= requestAnimationFrame(check))
     addEventListener('scroll', on, { passive: true })
@@ -60,7 +64,7 @@ function useBar() {
       cancelAnimationFrame(raf)
     }
   }, [])
-  return bar
+  return [bar, far] as const
 }
 
 // Focus lens: hovering the menu focuses the nearest link, the others soften
@@ -115,7 +119,7 @@ function useLens(nav: React.RefObject<HTMLElement>, lens: React.RefObject<HTMLSp
 export function Header() {
   const time = useClock()
   const dark = useOverDark()
-  const bar = useBar()
+  const [bar, far] = useBar()
   const nav = useRef<HTMLElement>(null)
   const lens = useRef<HTMLSpanElement>(null)
   const fill = useRef<HTMLSpanElement>(null)
@@ -158,9 +162,9 @@ export function Header() {
     <button
       type="button"
       className="totop"
-      data-on={(bar === 'shown' && !dark) || undefined}
+      data-on={(bar === 'shown' && far && !dark) || undefined}
       data-dark={dark || undefined}
-      tabIndex={bar === 'shown' && !dark ? 0 : -1}
+      tabIndex={bar === 'shown' && far && !dark ? 0 : -1}
       aria-label="Back to top"
       onClick={() => scrollToId('top')}
     >
