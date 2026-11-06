@@ -56,6 +56,7 @@ export function Work() {
           snap: stepped ? { snapTo: 'labelsDirectional', duration: { min: 0.15, max: 0.3 }, delay: 0.04, ease: 'power3.out', onComplete: () => tick() } : undefined,
         },
       })
+      let undo: (() => void) | undefined
       tl.addLabel('start', 0)
       // Dealt: each card flies to its place in a flat row
       cards.forEach((c, i) => {
@@ -67,12 +68,35 @@ export function Work() {
         const centre = (i: number) => -(slot(i) - (innerWidth - cardW()) / 2)
         tl.to(r, { x: () => centre(0), duration: 0.2 }, '+=0.1').addLabel('card0')
         for (let i = 1; i < cards.length; i++) tl.to(r, { x: () => centre(i), duration: 0.5 }).addLabel(`card${i}`)
+        // No hover under a thumb: the card resting in the middle is the one that
+        // resolves from halftone dots into its full picture
+        root.current!.setAttribute('data-steps', '')
+        let on = -1
+        tl.eventCallback('onUpdate', () => {
+          const t = tl.time()
+          let best = -1
+          let d = Infinity
+          cards.forEach((_, i) => {
+            const dd = Math.abs(t - tl.labels[`card${i}`]!)
+            if (dd < d) (d = dd), (best = i)
+          })
+          if (t < tl.labels.card0! - 0.1) best = -1
+          if (best === on) return
+          cards[on]?.removeAttribute('data-on')
+          on = best
+          cards[on]?.setAttribute('data-on', '')
+        })
+        undo = () => {
+          root.current?.removeAttribute('data-steps')
+          cards.forEach((c) => c.removeAttribute('data-on'))
+        }
       } else {
         // Then the whole row slides past, at the same pace the page scrolls
         tl.to(r, { x: () => -travel(), ease: 'none', duration: 0.6 + (travel() / innerWidth) * 1.4 }, '+=0.15')
       }
 
       gsap.to('.w2__bar i', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, scrub: true, invalidateOnRefresh: true } })
+      return undo
     })
     return () => mm.revert()
   }, [])
@@ -95,10 +119,15 @@ export function Work() {
           </a>
         ))}
         <div role="group" className="w2__card w2__card--teaser" aria-label={`${site.teaser.title}, ${site.teaser.label.toLowerCase()}`}>
-          <div className="w2__media teaser">
-            <p className="teaser__label"><i aria-hidden="true" />{site.teaser.label}</p>
-            <p className="teaser__title" aria-hidden="true">{site.teaser.title}</p>
-            <p className="teaser__line">{site.teaser.line}</p>
+          {/* A sealed folder: the front lifts a little and a redacted page shows, but it never opens */}
+          <div className="w2__media teaser folder">
+            <span className="folder__back" aria-hidden="true" />
+            <span className="folder__sheet" aria-hidden="true"><i /><i /><i /><i /></span>
+            <div className="folder__front">
+              <p className="teaser__label"><i aria-hidden="true" />{site.teaser.label}</p>
+              <p className="teaser__title" aria-hidden="true">{site.teaser.title}</p>
+              <p className="teaser__line">{site.teaser.line}</p>
+            </div>
           </div>
           <div className="w2__cap">
             <p className="w2__kind">Research desk for Indian markets</p>

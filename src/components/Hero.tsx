@@ -33,12 +33,12 @@ export function Hero({ ready }: { ready: boolean }) {
       setInvite(false)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
-    // Nothing but the name at first; after ten seconds, a quiet invitation fades in
+    // Nothing but the name at first; after three and a half seconds, a quiet invitation fades in
     const t = window.setTimeout(() => {
       if (scrollY >= 40) return
       if (touch) setInvite(true)
       else if (!found) setHint('Write something, or scroll.')
-    }, 10000)
+    }, 3500)
     return () => {
       window.clearTimeout(t)
       window.removeEventListener('ink:played', onPlay)
