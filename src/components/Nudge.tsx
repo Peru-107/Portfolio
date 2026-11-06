@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { site } from '../content'
 
 // The sign-off at the foot of the page: an invitation set as wide as the page,
 // with the things I've made stuck around it. Point at them and they shy away
@@ -16,8 +17,13 @@ const ITEMS: Item[] = [
   { label: 'Aegis, soon', x: 92, y: 4, r: 9, k: 0.8 },
 ]
 
+// Trying the other sign-off: /?signoff=clock shows my time in Mumbai, live
+const CLOCK = typeof location !== 'undefined' && new URLSearchParams(location.search).get('signoff') === 'clock'
+const hhmm = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: site.timezone }).format(new Date()).split(':') as [string, string]
+
 export function Nudge() {
   const root = useRef<HTMLDivElement>(null)
+  const [time, setTime] = useState(hhmm)
   const word = useRef<HTMLParagraphElement>(null)
   const els = useRef<(HTMLSpanElement | null)[]>([])
 
@@ -28,13 +34,24 @@ export function Nudge() {
       w.style.fontSize = '100px'
       const natural = w.offsetWidth
       const room = root.current!.clientWidth
-      w.style.fontSize = `${(room * 0.99 * 100) / Math.max(1, natural)}px`
+      // The time alone is short: it takes most of the width and leaves room for its caption
+      w.style.fontSize = `${(room * (CLOCK ? 0.7 : 0.99) * 100) / Math.max(1, natural)}px`
     }
     fit()
     document.fonts.ready.then(fit)
     const ro = new ResizeObserver(fit)
     ro.observe(root.current!)
     return () => ro.disconnect()
+  }, [time])
+
+  // The clock checks every few seconds and only changes when the minute does
+  useEffect(() => {
+    if (!CLOCK) return
+    const id = setInterval(() => setTime((t) => {
+      const n = hhmm()
+      return n[0] === t[0] && n[1] === t[1] ? t : n
+    }), 5000)
+    return () => clearInterval(id)
   }, [])
 
   useEffect(() => {
@@ -109,7 +126,16 @@ export function Nudge() {
 
   return (
     <div ref={root} className="nudge" aria-hidden="true">
-      <p ref={word} className="nudge__word">Let’s build<span className="accent">.</span></p>
+      {CLOCK ? (
+        <div className="nudge__clock">
+          <p ref={word} className="nudge__word">
+            {time[0]}<span className="nudge__colon">:</span>{time[1]}
+          </p>
+          <p className="nudge__caption">in Mumbai,<br />right now</p>
+        </div>
+      ) : (
+        <p ref={word} className="nudge__word">Let’s build<span className="accent">.</span></p>
+      )}
       {ITEMS.map((it, i) => (
         <span
           key={i}

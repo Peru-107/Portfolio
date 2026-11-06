@@ -182,7 +182,10 @@ const DISPLAY = head + /* glsl */ `
     vec2 vel = texture2D(uVelocity, uv).xy;
     // The flow nudges the letter's edge, so it sways with the ink
     float m = texture2D(uMask, (uv + vel * 0.000025) * maskXf.x + maskXf.yz).r;
-    float mask = smoothstep(0.42, 0.58, m) * reveal;
+    // Anti-aliased edge: as wide as one screen pixel of the mask, however far the
+    // warp stretches it, so the letter's outline never breaks into steps
+    float aa = max(fwidth(m) * 0.75, 0.012);
+    float mask = smoothstep(0.5 - aa, 0.5 + aa, m) * reveal;
 
     vec3 dye = texture2D(uDye, uv).rgb;
     float dl = length(texture2D(uDye, uv - vec2(dyeTexel.x, 0.0)).rgb);
@@ -534,18 +537,22 @@ export class InkField {
   }
 
   // Watches real frame times for a few seconds after each start; a device that
-  // can't keep up drops to a lower pixel ratio, then fewer pressure passes
+  // can't keep up drops pressure passes first and only then a little sharpness
   private adapt(ms: number) {
     if (this.sampled > 240 || ms > 200) return
     this.sampled++
     this.slowFrames = ms > 22 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 1)
     if (this.slowFrames < 30) return
     this.slowFrames = 0
-    if (this.dpr > 1) {
-      this.dpr = Math.max(1, this.dpr - 0.5)
+    // Sharpness goes last: fewer pressure passes first, and the pixel ratio
+    // never drops below 1.5 on screens that have one
+    const floor = Math.min(1.5, window.devicePixelRatio || 1)
+    if (this.iterations > 8) this.iterations -= 4
+    else if (this.dpr > floor) {
+      this.dpr = Math.max(floor, this.dpr - 0.25)
       this.renderer.setPixelRatio(this.dpr)
       this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1)
-    } else if (this.iterations > 8) this.iterations -= 4
+    }
   }
 
   start() {

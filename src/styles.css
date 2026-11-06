@@ -833,3 +833,9 @@ h1[tabindex="-1"]:focus { outline: none; }
 .sidenav[data-dark] a[aria-current] i { background: var(--magma); }
 .sidenav[data-dark]:hover a { background: color-mix(in srgb, var(--ink) 88%, transparent); }
 @media (max-width: 1099px) { .sidenav { display: none; } }
+/* The clock sign-off: the colon ticks once a second, in paper */
+.nudge__colon { color: var(--paper); animation: tick 1s steps(1, end) infinite; }
+@keyframes tick { 50% { opacity: 0.15; } }
+@media (prefers-reduced-motion: reduce) { .nudge__colon { animation: none; } }
+.nudge__clock { display: flex; align-items: flex-end; gap: clamp(16px, 2.4vw, 40px); }
+.nudge__caption { padding-bottom: 0.6em; font-family: var(--display); font-weight: 700; font-size: clamp(18px, 2.6vw, 44px); line-height: 1.05; color: var(--paper); }
