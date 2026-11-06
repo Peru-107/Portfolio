@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
 // The foot of the page is a pad of ink. It invites you to build something;
-// tap it and it switches on, then press and drag to draw. Each
-// stroke starts ember-hot, cools through magma to deep red, then dries and
-// fades. The things I've made are stuck on top; point at them and they shy
+// tap it and it switches on, then press and drag to draw, like a pen. Each
+// stroke goes down fiery yellow, warms through ember to magma orange, then
+// fades as a whole. The things I've made are stuck on top; point at them and they shy
 // away on springs, turning a little as they go, then settle back.
 
 type Item = { label?: string; x: number; y: number; r: number; dot?: boolean; k?: number }
@@ -22,15 +22,16 @@ const ITEMS: Item[] = [
 type Dot = { x: number; y: number; t: number; w: number; start: boolean }
 const LIFE = 5.2 // seconds from wet to gone
 
-// Colour of the ink at an age (0 = just laid, 1 = gone): ember, magma, deep red, dry
+// Colour of the ink at an age (0 = just laid, 1 = gone): fiery yellow, warming
+// through ember to magma orange, which then fades away
 function inkAt(age: number): [number, number, number, number] {
   const k = Math.min(1, age)
-  const stops: [number, number, number][] = [[255, 178, 56], [246, 68, 14], [179, 38, 30], [90, 30, 22]]
-  const f = Math.min(stops.length - 1.001, k * (stops.length - 1) * 1.15)
+  const stops: [number, number, number][] = [[255, 210, 70], [255, 150, 40], [246, 68, 14]]
+  const f = Math.min(stops.length - 1.001, (k / 0.6) * (stops.length - 1))
   const i = Math.floor(f)
   const t = f - i
   const c = stops[i]!.map((v, j) => Math.round(v + (stops[i + 1]![j]! - v) * t)) as [number, number, number]
-  return [...c, k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3]
+  return [...c, k < 0.65 ? 1 : 1 - (k - 0.65) / 0.35]
 }
 
 export function Nudge() {
@@ -75,30 +76,23 @@ export function Nudge() {
       ctx.clearRect(0, 0, c.clientWidth, c.clientHeight)
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
-      // Two passes: a soft wide glow, then the ink itself. Each stroke is one
-      // continuous path curving through the midpoints of its points, so the
-      // whole line cools and fades together, like ink drying
-      for (const glow of [true, false]) {
-        ctx.globalCompositeOperation = glow ? 'lighter' : 'source-over'
-        for (const st of kept) {
-          if (st.length < 2) continue
-          const age = (now - st[st.length - 1]!.t) / LIFE
-          const [r, g, bl, al] = inkAt(age)
-          // Hot ink glows; the glow cools away faster than the ink fades
-          const heat = Math.max(0, 1 - age * 2.2)
-          if (glow && heat <= 0) continue
-          const w = st.reduce((sum, d) => sum + d.w, 0) / st.length
+      // Like a pen: one crisp line per stroke, no glow. It curves through the
+      // midpoints of its points, so the whole line cools and fades together,
+      // like ink drying; segments follow the nib's width as it was drawn
+      for (const st of kept) {
+        if (st.length < 2) continue
+        const age = (now - st[st.length - 1]!.t) / LIFE
+        const [r, g, bl, al] = inkAt(age)
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
+        for (let i = 1; i < st.length; i++) {
+          const p0 = st[i - 1]!
+          const p1 = st[i]!
+          const z = st[i - 2]
           ctx.beginPath()
-          ctx.moveTo(st[0]!.x, st[0]!.y)
-          for (let i = 1; i < st.length; i++) {
-            const p0 = st[i - 1]!
-            const p1 = st[i]!
-            ctx.quadraticCurveTo(p0.x, p0.y, (p0.x + p1.x) / 2, (p0.y + p1.y) / 2)
-          }
-          const end = st[st.length - 1]!
-          ctx.lineTo(end.x, end.y)
-          ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${glow ? al * heat * 0.3 : al})`
-          ctx.lineWidth = glow ? w * 3 : w * (1 - age * 0.25)
+          ctx.moveTo(z ? (z.x + p0.x) / 2 : p0.x, z ? (z.y + p0.y) / 2 : p0.y)
+          ctx.quadraticCurveTo(p0.x, p0.y, (p0.x + p1.x) / 2, (p0.y + p1.y) / 2)
+          if (i === st.length - 1) ctx.lineTo(p1.x, p1.y)
+          ctx.lineWidth = p1.w
           ctx.stroke()
         }
       }
@@ -117,7 +111,7 @@ export function Nudge() {
       // A fresh stroke after a pause or a jump; otherwise faster means a thinner line
       const start = !last || t - last.t > 0.12 || Math.hypot(x - last.x, y - last.y) > 120
       const speed = last && !start ? Math.hypot(x - last.x, y - last.y) / Math.max(t - last.t, 1 / 240) : 0
-      const w = Math.max(4, Math.min(16, 16 - speed / 180))
+      const w = Math.max(2, Math.min(5.5, 5.5 - speed / 500))
       dots.push({ x, y, t, w, start })
       if (dots.length > 1600) dots.splice(0, dots.length - 1600)
       last = { x, y, t }
