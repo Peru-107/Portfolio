@@ -26,7 +26,7 @@ const LIFE = 5.2 // seconds from wet to gone
 // through ember to magma orange, which then fades away
 function inkAt(age: number): [number, number, number, number] {
   const k = Math.min(1, age)
-  const stops: [number, number, number][] = [[255, 210, 70], [255, 150, 40], [246, 68, 14]]
+  const stops: [number, number, number][] = [[255, 228, 92], [255, 168, 48], [255, 92, 28]]
   const f = Math.min(stops.length - 1.001, (k / 0.6) * (stops.length - 1))
   const i = Math.floor(f)
   const t = f - i
@@ -76,13 +76,25 @@ export function Nudge() {
       ctx.clearRect(0, 0, c.clientWidth, c.clientHeight)
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
-      // Like a pen: one crisp line per stroke, no glow. It curves through the
+      // Like a pen: one crisp line per stroke with a glow that hugs it. It curves through the
       // midpoints of its points, so the whole line cools and fades together,
       // like ink drying; segments follow the nib's width as it was drawn
       for (const st of kept) {
         if (st.length < 2) continue
         const age = (now - st[st.length - 1]!.t) / LIFE
         const [r, g, bl, al] = inkAt(age)
+        // A tight glow first: the whole stroke as one path, lit by a short shadow
+        // of its own colour, so the light hugs the line instead of haloing it
+        ctx.save()
+        ctx.shadowColor = `rgba(${r}, ${g}, ${bl}, ${al * 0.85})`
+        ctx.shadowBlur = 8
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
+        ctx.lineWidth = st.reduce((sum, d) => sum + d.w, 0) / st.length
+        ctx.beginPath()
+        ctx.moveTo(st[0]!.x, st[0]!.y)
+        for (let i = 1; i < st.length; i++) ctx.quadraticCurveTo(st[i - 1]!.x, st[i - 1]!.y, (st[i - 1]!.x + st[i]!.x) / 2, (st[i - 1]!.y + st[i]!.y) / 2)
+        ctx.stroke()
+        ctx.restore()
         ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
         for (let i = 1; i < st.length; i++) {
           const p0 = st[i - 1]!
