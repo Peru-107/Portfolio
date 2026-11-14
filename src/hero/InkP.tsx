@@ -99,11 +99,17 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       // New drawing, so the shaders read it as is: identity transform, fresh upload
       f?.setMaskTransform(1, 0, 0)
       f?.maskChanged()
+      zoom()
+    }
+    // The lava's veins keep their size against the letters, on a phone as on a desktop
+    const zoom = () => {
+      if (f && rest && rest.h > 0) f.lavaZoom = Math.max(1, Math.min(4, c.clientHeight / rest.h / 6))
     }
     let alive = true
     try {
       drawMask(mask, c.clientWidth, c.clientHeight, text, layout, rest)
       f = new InkField({ canvas: c, mask, paper: PAPER, inks: INKS, reducedMotion: reduced, lava: true })
+      zoom()
     } catch {
       fallback.current?.setAttribute('data-on', '')
       return

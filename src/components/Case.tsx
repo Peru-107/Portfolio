@@ -75,6 +75,34 @@ export function Case({ slug }: { slug: string }) {
     return () => mm.revert()
   }, [slug])
 
+  // Next project: its cover trails the pointer while you consider the link
+  const peek = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = peek.current
+    const link = root.current?.querySelector<HTMLElement>('.case__next')
+    if (!el || !link || !matchMedia('(hover: hover) and (pointer: fine)').matches) return
+    const x = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3.out' })
+    const y = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3.out' })
+    const move = (e: PointerEvent) => {
+      // To the right of the pointer, kept on screen
+      x(Math.min(e.clientX + 36, innerWidth - el.offsetWidth - 16))
+      y(Math.max(16, Math.min(e.clientY - el.offsetHeight / 2, innerHeight - el.offsetHeight - 16)))
+    }
+    const on = (e: PointerEvent) => {
+      gsap.set(el, { x: Math.min(e.clientX + 36, innerWidth - el.offsetWidth - 16), y: e.clientY - el.offsetHeight / 2 })
+      el.setAttribute('data-on', '')
+    }
+    const off = () => el.removeAttribute('data-on')
+    link.addEventListener('pointerenter', on)
+    link.addEventListener('pointermove', move)
+    link.addEventListener('pointerleave', off)
+    return () => {
+      link.removeEventListener('pointerenter', on)
+      link.removeEventListener('pointermove', move)
+      link.removeEventListener('pointerleave', off)
+    }
+  }, [slug])
+
   // The rail marks the part that crosses the middle of the screen
   useEffect(() => {
     setPart(PARTS[0]!.id)
@@ -90,6 +118,8 @@ export function Case({ slug }: { slug: string }) {
     })
     return () => io.disconnect()
   }, [slug])
+
+  const nextShot = pictures(next.cover)[0]
 
   if (!p) {
     return (
@@ -114,7 +144,9 @@ export function Case({ slug }: { slug: string }) {
     </section>,
     <section key="stack" id="case-stack" className="case__block" data-reveal="line">
       <h2><span className="mark" data-reveal="mark">Built with</span></h2>
-      <p className="case__stack" data-reveal="fade">{p.stack}</p>
+      <ul className="case__tags" data-reveal="fade">
+        {p.stack.split(/,\s*(?![^(]*\))/).map((t) => <li key={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</li>)}
+      </ul>
     </section>,
     <section key="outcome" id="case-stands" className="case__block case__outcome" data-reveal="line">
       <h2><span className="mark" data-reveal="mark">Where it stands</span></h2>
@@ -181,8 +213,13 @@ export function Case({ slug }: { slug: string }) {
         </div>
         <a className="case__next" {...linkProps(`/work/${next.slug}`)} data-cursor="Next">
           <span>Next project</span>
-          <strong><Roll>{next.title}</Roll></strong>
+          <strong style={{ ['--n' as string]: next.title.length }}><Roll>{next.title}</Roll></strong>
         </a>
+        {nextShot && (
+          <div ref={peek} className="case__peek" aria-hidden="true">
+            <img src={nextShot.src} alt="" loading="lazy" decoding="async" />
+          </div>
+        )}
       </main>
       <Contact />
     </>

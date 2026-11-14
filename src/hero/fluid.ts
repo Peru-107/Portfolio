@@ -120,7 +120,7 @@ const DISPLAY = head + /* glsl */ `
   uniform vec3 paper; uniform vec2 dyeTexel; uniform float time; uniform float outside; uniform float reveal; uniform float edges;
   // The pointer's recent path: position and velocity (xy, zw), and how much each point still pulls
   uniform vec4 trail[12]; uniform vec4 trailK[3]; uniform vec3 warpBurst;
-  uniform float lava;
+  uniform float lava; uniform float lavaZoom;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   // Cheap smooth noise for an organic wobble in the swirl
   float wob(vec2 p) { return sin(p.x * 3.1 + sin(p.y * 2.3 + time)) * cos(p.y * 2.7 - sin(p.x * 1.9 - time * 0.8)); }
@@ -138,7 +138,7 @@ const DISPLAY = head + /* glsl */ `
       vec2 at = trail[i].xy * vec2(aspect, 1.0);
       vec2 to = p - at;
       float d = length(to);
-      float t = 1.0 - smoothstep(0.0, 0.2, d);
+      float t = 1.0 - smoothstep(0.0, 0.2 / lavaZoom, d);
       float f = t * t * t * k * (1.0 + wob(uv * 5.0 + float(i) * 1.7) * 0.4);
       vec2 v = trail[i].zw;
       float speed = min(length(v), 2.4);
@@ -154,6 +154,8 @@ const DISPLAY = head + /* glsl */ `
       float t = 1.0 - smoothstep(0.0, r, d);
       swirl += to / max(d, 0.001) * t * t * warpBurst.z * warpBurst.z * 0.05;
     }
+    // A smaller word gets a smaller, gentler warp, so it bends but stays legible
+    swirl /= lavaZoom * lavaZoom;
     return uv - vec2(swirl.x / aspect, swirl.y);
   }
 
@@ -161,7 +163,7 @@ const DISPLAY = head + /* glsl */ `
   // with veins of deep red, magma and ember where the field crosses zero
   vec3 molten(vec2 uv) {
     float aspect = dyeTexel.y / dyeTexel.x;
-    vec2 q = (uv - 0.5) * vec2(aspect, 1.0) * 2.6;
+    vec2 q = (uv - 0.5) * vec2(aspect, 1.0) * 2.6 * lavaZoom;
     float k = time * 0.36;
     for (float i = 1.0; i < 9.0; i++) {
       q.x += 0.55 / i * sin(i * 1.7 * q.y + k + i * 0.9);
@@ -197,7 +199,9 @@ const DISPLAY = head + /* glsl */ `
 
     // With lava, the letters are molten rock and the ink flows over it like
     // smoke over embers: the lava glows wherever the ink is thin
-    vec3 inside = lava > 0.5 ? molten(uv) - dye * 0.6 : paper - dye - vec3(0.07);
+    vec3 inside = paper - dye - vec3(0.07);
+    // The molten pattern is the costly part: worked out only where the letters are
+    if (lava > 0.5 && mask > 0.002) inside = molten(uv) - dye * 0.6;
     inside += spec * 0.22 * smoothstep(0.15, 0.9, length(dye));
     vec3 out_ = paper - dye * outside;
     vec3 col = mix(out_, inside, mask);
@@ -264,6 +268,11 @@ export class InkField {
   private warpBurst = [0, 0, 0]
   private queue: { x: number; y: number; dx: number; dy: number; color: [number, number, number]; r: number }[] = []
   reveal = 0
+  /** How fine the lava's veins are: 1 suits a word a sixth of the canvas tall; smaller words need more */
+  set lavaZoom(v: number) {
+    this.mats.display!.uniforms.lavaZoom!.value = v
+  }
+
   /** How much ink shows outside the shapes (trails); about a third reads clearly without crowding the name */
   set edges(on: boolean) {
     this.mats.display!.uniforms.edges!.value = on ? 1 : 0
@@ -302,7 +311,7 @@ export class InkField {
     m('gradient', GRADIENT, { uPressure: tex(), uVelocity: tex() })
     m('fade', FADE, { uTexture: tex(), value: { value: 0.8 } })
     m('flood', FLOOD, { uTarget: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, color: { value: [0, 0, 0] } })
-    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.32 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst }, lava: { value: o.lava ? 1 : 0 } })
+    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.32 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst }, lava: { value: o.lava ? 1 : 0 }, lavaZoom: { value: 1 } })
 
     this.resize()
   }
@@ -391,6 +400,8 @@ export class InkField {
 
   /** Fill the letter with ink that reads as the given colour on this paper */
   flood(rgb: [number, number, number]) {
+    // Lava letters need no ink to read as solid: flooding them would only bleed a red halo
+    if (this.o.lava) return
     // The display shows paper minus ink (and a touch more inside the letter)
     const p = this.o.paper
     const color = [p[0] - 0.07 - rgb[0], p[1] - 0.07 - rgb[1], p[2] - 0.07 - rgb[2]]
@@ -402,10 +413,15 @@ export class InkField {
   pour() {
     const pts = this.maskPoints
     if (!pts.length) return
-    for (let i = 0; i < 44; i++) {
+    // Over lava the letters are already alight: a lighter pour, in finer drops,
+    // so the smoke around the name starts as wisps and never as one red cloud
+    const n = this.o.lava ? (this.light ? 10 : 18) : 44
+    const amount = this.o.lava ? 0.6 : 1.2
+    const r = this.o.lava ? (this.light ? 0.0022 : 0.004) : 0.008
+    for (let i = 0; i < n; i++) {
       const p = this.onWord(pts[Math.floor(Math.random() * pts.length)]!)
       const a = Math.random() * Math.PI * 2
-      this.queue.push({ x: p[0], y: p[1], dx: Math.cos(a) * 240, dy: Math.sin(a) * 240 - 110, color: this.nextInk(1.2), r: 0.008 })
+      this.queue.push({ x: p[0], y: p[1], dx: Math.cos(a) * 240, dy: Math.sin(a) * 240 - 110, color: this.nextInk(amount), r })
     }
   }
 
@@ -525,7 +541,7 @@ export class InkField {
       this.ambientAt = this.t
       const pt = this.onWord(this.maskPoints[Math.floor(Math.random() * this.maskPoints.length)]!)
       const a = Math.random() * Math.PI * 2
-      this.splat(pt[0], pt[1], Math.cos(a) * 70, Math.sin(a) * 70 - 25, this.nextInk(1), 0.006)
+      this.splat(pt[0], pt[1], Math.cos(a) * 70, Math.sin(a) * 70 - 25, this.nextInk(this.o.lava && this.light ? 0.55 : 1), this.o.lava && this.light ? 0.0026 : 0.006)
     }
 
     // Content moved since last frame: shift the whole field with it

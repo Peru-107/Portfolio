@@ -8,6 +8,7 @@ import { About } from './components/About'
 import { Experience } from './components/Experience'
 import { Contact } from './components/Contact'
 import { SideNav } from './components/SideNav'
+import { Palette } from './components/Palette'
 import { setTransition, usePath } from './lib/router'
 import { useReveals } from './lib/reveal'
 import { gsap, reduced, scrollTop, scrollToY, ScrollTrigger, startScroll } from './lib/motion'
@@ -141,6 +142,7 @@ export default function App() {
       <Preloader onDone={onDone} />
       <Cursor />
       <Header />
+      <Palette />
       <div id="main">
         <Suspense fallback={null}>
         {path.replace(/\/$/, '') === '/ink-story' ? (

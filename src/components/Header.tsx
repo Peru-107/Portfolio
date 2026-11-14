@@ -4,6 +4,7 @@ import { go } from '../lib/router'
 import { gsap, reduced, scrollToId, ScrollTrigger } from '../lib/motion'
 import { Magnetic } from './Magnetic'
 import { Roll } from './Roll'
+import { OPEN_PALETTE } from './Palette'
 
 function useClock() {
   const fmt = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: site.timezone }).format(new Date())
@@ -116,6 +117,8 @@ function useLens(nav: React.RefObject<HTMLElement>, lens: React.RefObject<HTMLSp
   }, [nav, lens])
 }
 
+const mac = typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent)
+
 export function Header() {
   const time = useClock()
   const dark = useOverDark()
@@ -157,6 +160,10 @@ export function Header() {
         <Magnetic><a href="/#experience" onClick={to('experience')}><Roll>Experience</Roll></a></Magnetic>
         <Magnetic><a href="/#contact" onClick={to('contact')}><Roll>Contact</Roll></a></Magnetic>
         <Magnetic><a href="/Perraz-Badhniwalla-CV.pdf" target="_blank" rel="noreferrer"><Roll>CV</Roll></a></Magnetic>
+        {/* The command menu's key; it opens on a click too */}
+        <button type="button" className="header__key" aria-label="Open the command menu" onClick={() => dispatchEvent(new Event(OPEN_PALETTE))}>
+          <kbd>{mac ? '⌘' : 'Ctrl'}</kbd><kbd>K</kbd>
+        </button>
       </nav>
     </header>
     <button
