@@ -6,11 +6,12 @@ import { tick } from '../lib/haptic'
 import { Media } from './Media'
 import { Roll } from './Roll'
 
+// How wide a deck card is drawn: 4:5 on phones, then 16:9 at 46vh tall (82vh wide)
+const CARD = '(max-width: 759px) min(66vw, 340px), (max-width: 959px) min(82vw, 640px), min(82vh, 924px)'
+
 // The work as one object that changes with the scroll: the projects start
 // stacked in depth, deal out into a row, then the row slides past. Each
 // project appears once, on phones as on desktop. Reduced motion gets a plain list.
-// How wide a deck card is drawn: 4:5 on phones, then 16:9 at 46vh tall (82vh wide)
-const CARD = '(max-width: 759px) min(66vw, 340px), (max-width: 959px) min(82vw, 640px), min(82vh, 924px)'
 
 export function Work() {
   const root = useRef<HTMLElement>(null)
