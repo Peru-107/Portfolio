@@ -94,6 +94,24 @@ export type Media =
   | { type: 'stack'; srcs: string[]; alt: string }
   | { type: 'row'; srcs: string[]; alt: string; bg: string; shape: 'phone' | 'slide' | 'screens' }
 
+/** A gap only Perraz can fill. Shown as a marked note while developing, and never
+ * in a production build, so nothing invented or unfinished can go live */
+export type Todo = { todo: string }
+export const TODO = (question: string): Todo => ({ todo: question })
+export const isTodo = (x: unknown): x is Todo => typeof x === 'object' && x !== null && 'todo' in x
+
+/** The design story of a project: the calls I made, what changed, what came of it */
+export type Story = {
+  /** Process and decisions: each one a choice, and the reason for it */
+  decisions: ({ title: string; body: string } | Todo)[]
+  /** What it was before, and what it is now */
+  beforeAfter: { before: string | Todo; after: string | Todo; media?: Media; /** Something still missing from the comparison */ gap?: Todo }
+  /** Only results that are true and checkable */
+  outcomes: (string | Todo)[]
+  /** A picture that belongs with the decisions */
+  media?: Media
+}
+
 export type Project = {
   slug: string
   title: string
@@ -113,6 +131,7 @@ export type Project = {
   /** A tall version of the cover for phones held upright */
   portrait?: Media
   gallery: Media[]
+  story: Story
 }
 
 export const projects: Project[] = [
@@ -142,6 +161,25 @@ export const projects: Project[] = [
       { type: 'image', src: '/media/cube-desk.webp', alt: 'CUBE landing page', frame: 'browser' },
       { type: 'image', src: '/media/cube-phone.webp', alt: 'CUBE on a phone', frame: 'phone' },
     ],
+    story: {
+      decisions: [
+        { title: 'Grow the first version, don’t start over', body: 'Attendly already handled the timetable, attendance, grades, notes and exam quizzes, offline. CUBE kept all of that and added the two things a campus day was still missing: a map to find your room and a chat with classmates.' },
+        { title: 'A chat that doesn’t need the internet', body: 'Our group chat stops working the moment campus Wi-Fi blocks it, so CUBE’s nearby chat talks to classmates around you with no connection at all.' },
+        { title: 'Scan once, never type a timetable', body: 'Copying a timetable by hand is where students give up. You scan it once and it becomes your schedule.' },
+        { title: 'Any grading scale', body: 'Colleges grade on 4, on 10 or their own way, so SGPA and CGPA work on any of them.' },
+        TODO('What did you try or reject while designing CUBE (layouts, navigation, the swipe to mark)? One or two real choices and why.'),
+      ],
+      media: { type: 'image', src: '/media/stack-cube.webp', alt: 'CUBE after class: grades and SGPA, the study notebook, calendar reminders and the nearby chat' },
+      beforeAfter: {
+        before: 'Attendly: timetable, attendance, grades, notes and exam quizzes in one free app that works offline.',
+        after: 'CUBE: everything Attendly did, plus a campus map and a nearby chat that works with no internet.',
+        gap: TODO('A screenshot of Attendly, to show next to CUBE.'),
+      },
+      outcomes: [
+        'Live and free for any student at cu-be.vercel.app.',
+        TODO('How many students use CUBE, or any feedback you have had from them?'),
+      ],
+    },
   },
   {
     slug: 'nextup',
@@ -165,6 +203,26 @@ export const projects: Project[] = [
     cover: { type: 'image', src: '/media/nextup-card.webp', alt: 'Nextup: turn what you save into what you do' },
     portrait: { type: 'image', src: '/media/nextup-poster.webp', alt: 'Nextup: get the next step' },
     gallery: [{ type: 'video', src: '/media/nextup.mp4', poster: '/media/nextup-poster.webp', alt: 'Nextup reel: you saved it, then forgot it' }],
+    story: {
+      decisions: [
+        { title: 'One next action, not another list', body: 'A list of saved posts is the problem, not the fix. Each save gets exactly one next action, and the week gets a short list: This week, Later, Archive, Done.' },
+        { title: 'Argued out before it was built', body: 'Seven AI agents debated the product in a “war room”, each with a vote, and the plan that came out of it was built from a design preview I approved first.' },
+        { title: 'Payments a person can trust', body: 'Pro is paid by UPI: you enter the 12-digit reference, I approve it by hand in the admin panel, and Pro switches on only then. It lasts 31 or 366 days and never renews by itself.' },
+        { title: 'Contrast checked by a script', body: 'All 12 palettes are tested against WCAG contrast by a script, so a style can be playful without becoming unreadable.' },
+        { title: 'Undo instead of “Are you sure?”', body: 'Done and Delete both have Undo, so a slip never loses anything.' },
+      ],
+      media: { type: 'image', src: '/media/stack-nextup.webp', alt: 'Nextup: saved items, each with one next action and a tag' },
+      beforeAfter: {
+        before: 'An earlier version priced Pro at $6 a month through a recurring payment link.',
+        after: 'Pro at Rs 199 a month or Rs 1,799 a year, paid by UPI and approved by hand, with no automatic renewal.',
+        gap: TODO('Why did you move from the $6 payment link to UPI with manual approval? One line in your words.'),
+      },
+      outcomes: [
+        'The Chrome extension is packaged and ready for the Chrome Web Store.',
+        'The database tests run twice: on SQLite and on a real Postgres engine.',
+        TODO('Is Nextup live for users yet, or published on the Chrome Web Store? Any numbers?'),
+      ],
+    },
   },
   {
     slug: 'folio',
@@ -188,6 +246,25 @@ export const projects: Project[] = [
     cover: { type: 'row', shape: 'phone', bg: '#e6e7df', srcs: ['/media/folio-today.webp', '/media/folio-room.webp', '/media/folio-shelf.webp'], alt: 'Folio on a phone: Today page, focus room with Sproutling, and the shelf' },
     portrait: { type: 'row', shape: 'phone', bg: '#e6e7df', srcs: ['/media/folio-today.webp', '/media/folio-room.webp'], alt: 'Folio on a phone: Today page and the focus room' },
     gallery: [{ type: 'image', src: '/media/folio-card.webp', alt: 'Folio: read a little every day', frame: 'browser' }],
+    story: {
+      decisions: [
+        { title: 'Four directions, then one', body: 'I previewed four design directions at phone size, each with its own layouts, sound presets, icons and a live Sproutling, then chose Clothbound.' },
+        { title: 'One system instead of five', body: 'The app had grown five competing UI styles. One Clothbound system with a Day and a Night theme replaced them all, set in Literata and Hanken Grotesk.' },
+        { title: 'Decoration out', body: 'Tilt and spotlight effects, rainbow gradients, Three.js, GSAP and confetti all came out. A reading app should be quiet.' },
+        { title: 'Glass only where it floats', body: 'Glass sits on the floating chrome, the dock, sheets and player, and never on anything you read.' },
+        { title: 'Real icons', body: 'A custom line icon set replaced every emoji that was standing in for an icon.' },
+      ],
+      media: { type: 'image', src: '/media/folio-notes.webp', alt: 'Folio’s focus room: Sproutling reading in glasses above a 25-minute timer', frame: 'phone' },
+      beforeAfter: {
+        before: 'Five competing UI styles, emoji for icons, and decoration everywhere, all in a single 6,106-line HTML file.',
+        after: 'One Clothbound system, Day and Night, with custom line icons and a calm editorial Today page.',
+        gap: TODO('A screenshot of Folio before the Clothbound redesign, to show next to the new one.'),
+      },
+      outcomes: [
+        'A second design review found 24 issues; 23 were fixed before shipping.',
+        'Installable, and it keeps working offline.',
+      ],
+    },
   },
   {
     slug: 'glass-home',
@@ -214,6 +291,24 @@ export const projects: Project[] = [
       { type: 'image', src: '/media/tv-panel.webp', alt: 'Wallpaper panel with change timings', frame: 'tv' },
       { type: 'image', src: '/media/tv-apps.webp', alt: 'All apps sheet over a waterfall wallpaper', frame: 'tv' },
     ],
+    story: {
+      decisions: [
+        { title: 'Designed for the sofa', body: 'Everything is sized for a 1280×720 screen read from three metres away, and driven by a remote’s arrow keys alone.' },
+        { title: 'Only effects a TV chip can afford', body: 'I sorted every effect by its cost on a weak GPU. Moving and fading things, and still images, are cheap; live blur and per-frame shaders are not. So the glass uses images blurred in advance.' },
+        { title: 'Focus you can see across a room', body: 'The chosen tile springs up and gets a white ring, so you always know where the remote is.' },
+        { title: 'One dock, not rows of rows', body: 'A single frosted dock: five app tiles plus All apps, and a full-screen glass sheet for everything else.' },
+        { title: 'No Android Studio', body: 'A script compiles, signs and installs the app straight onto the TV, without Gradle or Android Studio.' },
+      ],
+      media: { type: 'image', src: '/media/tv-focus.webp', alt: 'Glass Home with “Jump back in” above the dock and the focus ring on the YouTube tile', frame: 'tv' },
+      beforeAfter: {
+        before: TODO('What did your TV’s home screen look like before Glass Home, and what bothered you about it? A screenshot would help.'),
+        after: 'A calm glass home: one big photo, a frosted dock, and a clock, readable from the sofa.',
+      },
+      outcomes: [
+        'Installed and running every day on my own TV.',
+        'About 4,200 lines of plain Java.',
+      ],
+    },
   },
   {
     slug: 'byperraz',
@@ -240,5 +335,22 @@ export const projects: Project[] = [
       { type: 'image', src: '/media/by-2.webp', alt: 'A byperraz carousel slide' },
       { type: 'image', src: '/media/by-3.webp', alt: 'A byperraz carousel slide' },
     ],
+    story: {
+      decisions: [
+        { title: 'Nothing posts without me', body: 'The engine starts in preview mode. It plans, writes and renders, but a post goes out only when I click Approve & Post.' },
+        { title: 'Ready when I am', body: 'At 13:00 and 18:00 it stages the next post and sends a Windows notification; if the laptop was asleep it still stages it, up to six hours late.' },
+        { title: 'Runs on my laptop', body: 'The core loop needs no cloud, and rendering the slides works with no internet at all.' },
+        { title: 'Rules for every caption', body: 'Each caption is shaped the same way, a hook, then the call to action, then three to five tags, and every slide gets its own alt text.' },
+      ],
+      media: { type: 'image', src: '/media/stack-by.webp', alt: 'Three byperraz slides from the “One Job Per Color” palette post' },
+      beforeAfter: {
+        before: 'Every carousel made by hand, which was never going to last at three good posts a day.',
+        after: 'A 30-day plan, slides, captions and alt text prepared for me, with the final call still mine.',
+      },
+      outcomes: [
+        '18 post kits produced so far, each through the approval step.',
+        TODO('How has @byperraz grown since the engine started (followers, reach, saves)?'),
+      ],
+    },
   },
 ]

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { projects, type Media as M } from '../content'
+import { isTodo, projects, type Media as M, type Todo } from '../content'
 import { Count } from './Count'
 import { Roll } from './Roll'
 import { back, linkProps } from '../lib/router'
@@ -16,13 +16,23 @@ function pictures(m: M | undefined): Shot[] {
   return m.srcs.map((src) => ({ src, alt: m.alt }))
 }
 
-// The four parts of every case study, in order; the rail beside them lists these
+// The parts of every case study, in order; the rail beside them lists these
 const PARTS = [
   { id: 'problem', label: 'The problem' },
   { id: 'does', label: 'What it does' },
+  { id: 'decisions', label: 'How I decided' },
+  { id: 'change', label: 'Before and after' },
   { id: 'stack', label: 'Built with' },
   { id: 'stands', label: 'Where it stands' },
 ]
+
+// Gaps only Perraz can fill: a marked note while developing, nothing at all in a
+// production build, so a placeholder can never go live
+const DEV = import.meta.env.DEV
+function Gap({ t }: { t: Todo }) {
+  return DEV ? <p className="case__todo">TODO for Perraz: {t.todo}</p> : null
+}
+const real = <T,>(xs: (T | Todo)[]) => xs.filter((x): x is T => !isTodo(x))
 
 export function Case({ slug }: { slug: string }) {
   const root = useRef<HTMLElement>(null)
@@ -138,6 +148,20 @@ export function Case({ slug }: { slug: string }) {
     )
   }
 
+  const story = p.story
+  const decisions = real(story.decisions)
+  const outcomes = real(story.outcomes)
+  const ba = story.beforeAfter
+  // Without both sides there is no comparison to show (a gap still being filled)
+  const hasChange = DEV || (!isTodo(ba.before) && !isTodo(ba.after))
+  const moreOutcomes = outcomes.filter((o) => o !== p.result)
+  const parts = PARTS.filter((s) => s.id !== 'change' || hasChange)
+  const side = (label: string, v: string | Todo) => (
+    <div className="case__side">
+      <h3>{label}</h3>
+      {isTodo(v) ? <Gap t={v} /> : <p>{v}</p>}
+    </div>
+  )
   // Long-form: text blocks and large images take turns down the page
   const blocks: ReactNode[] = [
     <section key="brief" id="case-problem" className="case__block case__brief" data-reveal="line">
@@ -150,6 +174,32 @@ export function Case({ slug }: { slug: string }) {
         {p.did.map((d) => <li key={d} data-reveal="fade">{d}</li>)}
       </ul>
     </section>,
+    <section key="decisions" id="case-decisions" className="case__block" data-reveal="line">
+      <h2><span className="mark" data-reveal="mark">How I decided</span></h2>
+      <ol className="case__decisions">
+        {decisions.map((d) => (
+          <li key={d.title} data-reveal="fade">
+            <h3>{d.title}</h3>
+            <p>{d.body}</p>
+          </li>
+        ))}
+        {story.decisions.filter(isTodo).map((t) => <li key={t.todo}><Gap t={t} /></li>)}
+      </ol>
+      {story.media && (
+        <div className="case__storyshot" data-reveal="unveil">
+          <Media m={story.media} />
+        </div>
+      )}
+    </section>,
+    hasChange && <section key="change" id="case-change" className="case__block case__change" data-reveal="line">
+      <h2><span className="mark" data-reveal="mark">Before and after</span></h2>
+      <div className="case__ba">
+        {side('Before', ba.before)}
+        {side('After', ba.after)}
+      </div>
+      {ba.media && <div className="case__storyshot" data-reveal="unveil"><Media m={ba.media} /></div>}
+      {ba.gap && <Gap t={ba.gap} />}
+    </section>,
     <section key="stack" id="case-stack" className="case__block" data-reveal="line">
       <h2><span className="mark" data-reveal="mark">Built with</span></h2>
       <ul className="case__tags" data-reveal="fade">
@@ -159,6 +209,12 @@ export function Case({ slug }: { slug: string }) {
     <section key="outcome" id="case-stands" className="case__block case__outcome" data-reveal="line">
       <h2><span className="mark" data-reveal="mark">Where it stands</span></h2>
       <p data-reveal="fade">{p.result}</p>
+      {moreOutcomes.length > 0 && (
+        <ul className="case__outcomes">
+          {moreOutcomes.map((o) => <li key={o} data-reveal="fade">{o}</li>)}
+        </ul>
+      )}
+      {story.outcomes.filter(isTodo).map((t) => <Gap key={t.todo} t={t} />)}
     </section>,
   ]
   // All its screens, once each, in one carousel after "What it does"
@@ -203,7 +259,7 @@ export function Case({ slug }: { slug: string }) {
             <p className="case__rail-name">{p.title}</p>
             <p className="case__rail-kind">{p.kind}, {p.year}</p>
             <ol className="case__rail-parts">
-              {PARTS.map((s) => (
+              {parts.map((s) => (
                 <li key={s.id}>
                   <a
                     href={`#case-${s.id}`}

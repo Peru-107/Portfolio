@@ -273,6 +273,32 @@ button { font: inherit; color: inherit; }
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
 
+/* Case: the design story (decisions, before and after, outcomes) */
+.case__decisions { list-style: none; counter-reset: d; }
+.case__decisions > li { counter-increment: d; display: grid; grid-template-columns: 3.2em 1fr; column-gap: 12px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.case__decisions > li::before { content: counter(d, decimal-leading-zero); grid-row: 1 / span 2; font-family: var(--display); font-weight: 700; font-size: var(--fs-ui); color: var(--magma-text); padding-top: 0.2em; }
+.case__decisions h3 { font-family: var(--display); font-weight: 700; font-size: var(--fs-h3); line-height: 0.94; letter-spacing: -0.032em; }
+.case__decisions p { margin-top: 10px; max-width: 56ch; font-size: var(--fs-body); line-height: 1.5; color: var(--ink-soft); }
+.case__storyshot { margin-top: clamp(32px, 6vh, 64px); }
+.case__storyshot .media { max-width: 100%; }
+.case__storyshot .media[data-frame='phone'] { height: auto; display: flex; justify-content: center; }
+.case__storyshot .media[data-frame='phone'] img { height: min(70vh, 620px); }
+.case__ba { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter); }
+.case__side { padding: 24px; box-shadow: inset 0 0 0 1px var(--line); }
+.case__side + .case__side { background: var(--ink); color: var(--paper); box-shadow: none; }
+.case__side h3 { font-family: var(--ui); font-weight: 600; font-size: var(--fs-caption); color: var(--ink-soft); }
+.case__side + .case__side h3 { color: var(--magma); }
+.case__side p { margin-top: 12px; font-size: var(--fs-lead); line-height: 1.4; }
+.case__outcomes { list-style: none; }
+.case__outcomes li { position: relative; padding: 12px 0 12px 28px; font-size: var(--fs-body); line-height: 1.45; border-bottom: 1px solid var(--line); }
+.case__outcomes li::before { content: ''; position: absolute; left: 0; top: 1.15em; width: 14px; height: 2px; background: var(--magma-text); }
+/* Development only: a gap Perraz still has to fill (never rendered in a build) */
+.case__todo { margin-top: 16px; padding: 12px 16px; font-family: 'Courier Prime', 'Courier New', monospace; font-size: var(--fs-caption); color: var(--ink); background: rgba(246, 68, 14, 0.1); box-shadow: inset 0 0 0 1.5px var(--magma-text); }
+@media (max-width: 759px) {
+  .case__ba { grid-template-columns: 1fr; gap: 12px; }
+  .case__decisions > li { grid-template-columns: 2.6em 1fr; }
+}
+
 /* Case: gallery and links */
 .case__link a { display: inline-block; padding: 10px 18px; border-radius: 0; background: var(--ink); color: var(--paper); font-weight: 600; transition: background-color 0.25s, color 0.25s; }
 .case__link a:hover { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
