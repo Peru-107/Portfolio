@@ -150,12 +150,32 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     const io = new IntersectionObserver(
       ([e]) => {
         onScreen = e!.isIntersecting
-        if (onScreen && wanted.current) f.start()
+        if (onScreen && wanted.current && !idle) f.start()
         else f.stop()
       },
       { threshold: 0, rootMargin: '25% 0px 25% 0px' },
     )
     io.observe(c)
+
+    // Nobody has touched the page for a while: the ink holds its last frame and
+    // the loop stops, so an open tab costs nothing. Any input picks it up again
+    const IDLE_MS = 45000
+    let idle = false
+    let lastInput = performance.now()
+    const woke = () => {
+      lastInput = performance.now()
+      if (!idle) return
+      idle = false
+      if (onScreen && wanted.current) f.start()
+    }
+    const wakeOn = ['pointermove', 'pointerdown', 'keydown', 'scroll', 'touchstart', 'wheel', 'ink:drop'] as const
+    wakeOn.forEach((t) => window.addEventListener(t, woke, { passive: true }))
+    const idleTimer = window.setInterval(() => {
+      if (!idle && f.active && performance.now() - lastInput > IDLE_MS) {
+        idle = true
+        f.stop()
+      }
+    }, 2000)
 
     let stirred = false
     const local = (e: PointerEvent) => {
@@ -228,7 +248,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     let lastTouch = performance.now()
     let ghostRaf = 0
     const ghost = window.setInterval(() => {
-      if (performance.now() - lastTouch < 3500 || reduced) return
+      if (performance.now() - lastTouch < 3500 || reduced || idle || !f.active) return
       const r = c.getBoundingClientRect()
       if (r.bottom < innerHeight * 0.3 || r.top > innerHeight) return
       const a = anchor?.current?.getBoundingClientRect() ?? r
@@ -294,6 +314,8 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       window.removeEventListener('pointerup', up)
       window.removeEventListener('ink:drop', drop)
       window.clearInterval(ghost)
+      window.clearInterval(idleTimer)
+      wakeOn.forEach((t) => window.removeEventListener(t, woke))
       window.clearInterval(tiltTimer)
       window.removeEventListener('deviceorientation', tilt)
       cancelAnimationFrame(ghostRaf)
@@ -315,6 +337,12 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
       return
     }
     f.start()
+    // Settled ink (hardware that can't keep up) is already a finished still frame
+    if (f.settled) {
+      const w = window as unknown as { __inkHandoff?: boolean; __inkFlooded?: boolean }
+      if (w.__inkHandoff) (w.__inkHandoff = false), (w.__inkFlooded = true)
+      return
+    }
     // After the loading screen: the ink starts as that same solid word, then
     // magma pours in and the letters begin to flow
     const w = window as unknown as { __inkHandoff?: boolean; __inkFlooded?: boolean }

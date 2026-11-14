@@ -255,6 +255,7 @@ export class InkField {
     this.maskXf[0] = k
     this.maskXf[1] = cx
     this.maskXf[2] = cy
+    this.paint()
   }
   // A point inside the letter, in today's screen position
   private onWord(p: [number, number]): [number, number] {
@@ -271,11 +272,13 @@ export class InkField {
   /** How fine the lava's veins are: 1 suits a word a sixth of the canvas tall; smaller words need more */
   set lavaZoom(v: number) {
     this.mats.display!.uniforms.lavaZoom!.value = v
+    this.paint()
   }
 
   /** How much ink shows outside the shapes (trails); about a third reads clearly without crowding the name */
   set edges(on: boolean) {
     this.mats.display!.uniforms.edges!.value = on ? 1 : 0
+    this.paint()
   }
   set outside(v: number) {
     this.mats.display!.uniforms.outside!.value = v
@@ -292,9 +295,26 @@ export class InkField {
   private iterations = this.light ? 12 : 18
   private slowFrames = 0
   private sampled = 0
+  // Average frame time, smoothed; watched for as long as the ink runs
+  private avgMs = 16
+  private slowRun = 0
+  /** A software renderer (no real GPU: SwiftShader, llvmpipe, Basic Render) can't run the
+   * simulation smoothly, so the ink settles into one still frame there from the start */
+  readonly software: boolean
+  /** The ink has settled into a still frame (weak hardware or reduced motion). It still
+   * follows the word as the page moves, but nothing simulates any more */
+  settled = false
+  private paintRaf = 0
+  private paintedAt = 0
 
   constructor(private o: InkOptions) {
     this.renderer = new Renderer(o.canvas)
+    this.software = InkField.isSoftware(this.renderer.gl)
+    if (this.software) {
+      this.light = true
+      this.dpr = 1
+      this.iterations = 6
+    }
     this.renderer.setPixelRatio(this.dpr)
     this.makeMaskTexture()
 
@@ -314,6 +334,12 @@ export class InkField {
     m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.32 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst }, lava: { value: o.lava ? 1 : 0 }, lavaZoom: { value: 1 } })
 
     this.resize()
+  }
+
+  static isSoftware(gl: WebGL2RenderingContext) {
+    const info = gl.getExtension('WEBGL_debug_renderer_info')
+    const name = String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER))
+    return /swiftshader|llvmpipe|softpipe|software|basic render|mesa offscreen/i.test(name)
   }
 
   private target(w: number, h: number) {
@@ -354,6 +380,8 @@ export class InkField {
     this.curl = this.target(this.simW, this.simH)
     this.makeMaskTexture()
     this.sampleMask()
+    // A still frame is lost with the old buffers: settle a fresh one
+    if (this.settled) this.still()
   }
 
   /** The canvas changed size a little (a phone's address bar, a re-measure):
@@ -361,6 +389,7 @@ export class InkField {
    * without reallocating the simulation and losing the ink */
   fit() {
     this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1)
+    this.paint()
   }
 
   // Points inside the letter, for the ambient drips and the opening pour
@@ -504,8 +533,15 @@ export class InkField {
   }
 
   private frame = () => {
+    if (!this.running) return
+    this.tick(true)
+    if (this.running) this.raf = requestAnimationFrame(this.frame)
+  }
+
+  /** One step of the simulation and one picture of it */
+  private tick(live: boolean) {
     const now = performance.now()
-    this.adapt(now - this.last)
+    if (live) this.adapt(now - this.last)
     // The whole simulation runs at half speed: ink should drift, not rush
     const dt = Math.min((now - this.last) / 1000, 1 / 30) * 0.5
     this.last = now
@@ -548,14 +584,63 @@ export class InkField {
     this.shiftNow = [0, -this.pendingScroll / Math.max(1, this.o.canvas.clientHeight)]
     this.pendingScroll = 0
     this.step(dt)
+    this.display()
+  }
+
+  private display() {
+    this.paintedAt = performance.now()
     this.pass('display', null, { uDye: this.dye.read.texture, uVelocity: this.vel.read.texture, dyeTexel: [1 / this.dyeW, 1 / this.dyeH], time: this.t, reveal: this.reveal }, [this.dyeW, this.dyeH])
-    if (this.running) this.raf = requestAnimationFrame(this.frame)
+  }
+
+  /** While the ink is paused or settled, the word can still move (the scroll glide):
+   * draw the held ink again in the word's new place, at most once a frame */
+  private paint() {
+    if (this.running || this.paintRaf || !this.dye) return
+    const go = () => {
+      // A software renderer gets fewer repaints: each one costs it a lot
+      if (this.software && performance.now() - this.paintedAt < 90) return void (this.paintRaf = requestAnimationFrame(go))
+      this.paintRaf = 0
+      if (!this.running) this.display()
+    }
+    this.paintRaf = requestAnimationFrame(go)
+  }
+
+  /** Pour, let it spread for a moment, then hold: one settled frame, no loop */
+  private still(frames = this.software ? 0 : 60) {
+    this.reveal = 1
+    // Without a GPU even a few steps cost seconds: the molten letters alone, drawn once
+    if (!frames) return this.display()
+    this.pour()
+    this.last = performance.now() - 33
+    for (let i = 0; i < frames; i++) {
+      this.last -= 33
+      this.tick(false)
+    }
+  }
+
+  /** Stop simulating for good and keep a still frame (frames ran long, or the GPU is software) */
+  settle() {
+    if (this.settled) return
+    this.settled = true
+    const was = this.running
+    this.stop()
+    if (!was && !this.stilled) this.still()
+    this.stilled = true
+    window.dispatchEvent(new Event('ink:settled'))
   }
 
   // Watches real frame times for a few seconds after each start; a device that
   // can't keep up drops pressure passes first and only then a little sharpness
   private adapt(ms: number) {
-    if (this.sampled > 240 || ms > 200) return
+    // A frame over 200ms is a hidden tab or a hiccup, not the simulation's cost
+    if (ms > 200) return
+    // Watched for as long as it runs: if it stays under about 22 frames a second
+    // after every step down, settle into a still frame instead of stuttering
+    this.avgMs += (ms - this.avgMs) * 0.05
+    const exhausted = this.iterations <= 8 && this.dpr <= Math.min(1.5, window.devicePixelRatio || 1)
+    this.slowRun = this.avgMs > 45 ? this.slowRun + 1 : 0
+    if (this.slowRun > (exhausted ? 60 : 180)) return void this.settle()
+    if (this.sampled > 240) return
     this.sampled++
     this.slowFrames = ms > 22 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 1)
     if (this.slowFrames < 30) return
@@ -573,23 +658,31 @@ export class InkField {
 
   start() {
     if (this.running) return
-    this.sampled = 0
-    this.running = true
-    this.last = performance.now()
-    if (this.o.reducedMotion) {
-      // One settled frame: pour, let it spread, then hold still
-      this.reveal = 1
-      this.pour()
-      for (let i = 0; i < 90; i++) this.frame()
-      this.running = false
+    // Reduced motion, or hardware that can't keep up: one settled frame, held still
+    if (this.o.reducedMotion || this.software) this.settled = true
+    if (this.settled) {
+      if (!this.stilled) {
+        this.stilled = true
+        this.still()
+      } else this.paint()
       return
     }
+    this.sampled = 0
+    this.slowRun = 0
+    this.running = true
+    this.last = performance.now()
     this.raf = requestAnimationFrame(this.frame)
   }
+  private stilled = false
 
   stop() {
     this.running = false
     cancelAnimationFrame(this.raf)
+  }
+
+  /** Paused (idle or off screen) rather than settled: start() picks up where it left off */
+  get active() {
+    return this.running
   }
 
   refreshMask() {
@@ -599,6 +692,7 @@ export class InkField {
 
   dispose() {
     this.stop()
+    cancelAnimationFrame(this.paintRaf)
     clearTimeout(this.sampleTimer)
     ;[this.vel, this.dye, this.pressure].forEach((d) => (d.read.dispose(), d.write.dispose()))
     this.div.dispose()
