@@ -139,14 +139,7 @@ export function Case({ slug }: { slug: string }) {
 
   const nextShot = pictures(next.cover)[0]
 
-  if (!p) {
-    return (
-      <main className="case case--missing">
-        <h1 className="case__title"><span>Not here</span></h1>
-        <p>That project doesn’t exist. <a {...linkProps('/')}>Go back to the work</a></p>
-      </main>
-    )
-  }
+  if (!p) return <Missing />
 
   const story = p.story
   const decisions = real(story.decisions)
@@ -287,5 +280,27 @@ export function Case({ slug }: { slug: string }) {
       </main>
       <Contact />
     </>
+  )
+}
+
+/** A page that isn't there: says so, and asks search engines not to keep it */
+function Missing() {
+  useEffect(() => {
+    const title = document.title
+    document.title = 'Not here — Perraz Badhniwalla'
+    const meta = document.createElement('meta')
+    meta.name = 'robots'
+    meta.content = 'noindex'
+    document.head.appendChild(meta)
+    return () => {
+      document.title = title
+      meta.remove()
+    }
+  }, [])
+  return (
+    <main className="case case--missing">
+      <h1 className="case__title"><span>Not here</span></h1>
+      <p>That page doesn’t exist. <a {...linkProps('/')}>Go back to the work</a></p>
+    </main>
   )
 }

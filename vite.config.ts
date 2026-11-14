@@ -32,6 +32,14 @@ const pages = (): Plugin => ({
       mkdirSync(resolve(dist, 'work', p.slug), { recursive: true })
       writeFileSync(resolve(dist, 'work', p.slug, 'index.html'), html)
     }
+    // Addresses that are not pages get a real 404 (Vercel serves this file with that status)
+    writeFileSync(
+      resolve(dist, '404.html'),
+      home
+        .replace(/<title>[^<]*<\/title>/, '<title>Not here — Perraz Badhniwalla</title>')
+        .replace(/\s*<link rel="canonical"[^>]*>/, '')
+        .replace('<meta charset="UTF-8" />', '<meta charset="UTF-8" />\n    <meta name="robots" content="noindex" />'),
+    )
     const today = new Date().toISOString().slice(0, 10)
     const urls = [`${SITE}/`, ...projects.map((p) => `${SITE}/work/${p.slug}`)]
     writeFileSync(

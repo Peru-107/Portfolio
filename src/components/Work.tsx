@@ -9,6 +9,9 @@ import { Roll } from './Roll'
 // The work as one object that changes with the scroll: the projects start
 // stacked in depth, deal out into a row, then the row slides past. Each
 // project appears once, on phones as on desktop. Reduced motion gets a plain list.
+// How wide a deck card is drawn: 4:5 on phones, then 16:9 at 46vh tall (82vh wide)
+const CARD = '(max-width: 759px) min(66vw, 340px), (max-width: 959px) min(82vw, 640px), min(82vh, 924px)'
+
 export function Work() {
   const root = useRef<HTMLElement>(null)
   const row = useRef<HTMLDivElement>(null)
@@ -130,14 +133,14 @@ export function Work() {
     <section ref={root} id="work" className="w2" aria-labelledby="work-title">
       <header className="w2__head">
         <h2 id="work-title" className="w2__title">Things I’ve <span className="accent">built.</span></h2>
-        <p className="w2__lead">{site.proof.title}</p>
+        <p className="w2__lead">{site.workLead}</p>
       </header>
       <div ref={row} className="w2__row">
         {projects.map((p) => (
           <a key={p.slug} className="w2__card" {...linkProps(`/work/${p.slug}`, true)} data-cursor="Open" aria-label={`${p.title}, ${p.kind}. Open case study`}>
-            <div className="w2__media"><Media m={p.cover} /></div>
+            <div className="w2__media"><Media m={p.cover} sizes={CARD} /></div>
             {/* Phones held upright get tall cards; their images load only there */}
-            {p.portrait && <div className="w2__media w2__media--portrait"><Media m={p.portrait} /></div>}
+            {p.portrait && <div className="w2__media w2__media--portrait"><Media m={p.portrait} sizes={CARD} /></div>}
             <div className="w2__cap">
               <p className="w2__kind">{p.kind}, {p.year}</p>
               <p className="w2__name"><Roll>{p.title}</Roll></p>

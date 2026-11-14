@@ -3,9 +3,7 @@
 export const site = {
   name: 'Perraz',
   fullName: 'Perraz Badhniwalla',
-  role: 'Product designer & front-end developer, with a finance degree',
   pitch: 'I design products, build them myself, and know their worth.',
-  intro: 'I’m an MBA Tech student in Mumbai, studying computer engineering and finance. This year I shipped five products, from a campus app to a TV home screen.',
   // The title block under the headline, like the corner of a technical drawing
   facts: [
     { k: 'Studying', v: 'Computer engineering' },
@@ -22,23 +20,13 @@ export const site = {
     { label: 'GitHub', href: 'https://github.com/Peru-107' },
     { label: 'Instagram', href: 'https://instagram.com/byperraz' },
   ],
-  proof: {
-    title: 'Five products. Designed, coded and shipped by one person.',
-    points: [
-      { label: 'Design and code', body: 'Every product here, I designed and built end to end. No templates, no hand-off.' },
-      { label: 'Finance', body: 'Corporate finance intern at SOTC: MIS, reconciliation and about 120 forex approvals a day.' },
-      { label: 'Engineering', body: 'At Hitachi Systems I load-tested a banking app and built its monitoring in Java.' },
-      { label: 'Discipline', body: 'Represented India at the Karate World Championship. Practice is the whole method.' },
-    ],
-  },
-  now: 'Now building Aegis, a research desk for Indian markets where my finance and engineering sides meet. More soon.',
+  // Beside the Work title on wide screens
+  workLead: 'Five products. Designed, coded and shipped by one person.',
   teaser: {
     title: 'Aegis',
     label: 'In the works',
     line: 'A research desk for Indian markets that I’m building on my own laptop. Careful with data, strict with risk, and patient before it ever trades.',
-    hints: ['Indian markets', 'Research first', 'Risk rules built in', 'Runs locally'],
   },
-  manifesto: ['I want such ideas.', '…and I build them.'],
   about: [
     'I study two things at once: computer engineering and finance. One taught me how to build a product, the other how to ask whether it is worth building.',
     'Outside class I ship my own apps. I design them, write the code and keep going until they feel right. Before all of this I represented India at the Karate World Championship, which is where I learned to practise the same move a thousand times.',

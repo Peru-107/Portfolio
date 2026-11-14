@@ -135,6 +135,8 @@ export default function App() {
   }, [])
 
   const slug = path.startsWith('/work/') ? path.slice(6).replace(/\/$/, '') : null
+  // Any other address is not a page: it gets the 'not here' page, not the home page
+  const unknown = !slug && path !== '/' && path.replace(/\/$/, '') !== '/ink-story'
 
   return (
     <>
@@ -147,8 +149,8 @@ export default function App() {
         <Suspense fallback={null}>
         {path.replace(/\/$/, '') === '/ink-story' ? (
           <InkStory />
-        ) : slug ? (
-          <Case key={slug} slug={slug} />
+        ) : slug || unknown ? (
+          <Case key={slug ?? path} slug={slug ?? ''} />
         ) : (
           <main>
             {/* Pinned sections sit in their own wrappers: GSAP's pin spacer then never disturbs React's siblings */}

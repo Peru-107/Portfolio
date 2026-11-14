@@ -42,7 +42,8 @@ function Video({ m }: { m: Extract<M, { type: 'video' }> }) {
   )
 }
 
-export function Media({ m, priority }: { m: M; priority?: boolean }) {
+/** `sizes` is how wide a single image is drawn, when it isn't the default case-page width */
+export function Media({ m, priority, sizes }: { m: M; priority?: boolean; sizes?: string }) {
   const load = priority ? 'eager' : 'lazy'
   if (m.type === 'row') {
     return (
@@ -55,7 +56,7 @@ export function Media({ m, priority }: { m: M; priority?: boolean }) {
     return (
       <div className="media media--stack" role="img" aria-label={m.alt}>
         {m.srcs.map((s, i) => (
-          <img key={s} {...responsive(s)} alt="" loading={load} style={{ ['--i' as string]: i }} />
+          <img key={s} {...responsive(s, sizes)} alt="" loading={load} style={{ ['--i' as string]: i }} />
         ))}
       </div>
     )
@@ -64,7 +65,7 @@ export function Media({ m, priority }: { m: M; priority?: boolean }) {
   return (
     <figure className="media" data-frame={frame}>
       {frame === 'browser' && <span className="media__bar" aria-hidden="true"><i /><i /><i /></span>}
-      {m.type === 'video' ? <Video m={m} /> : <img {...responsive(m.src)} alt={m.alt} loading={load} />}
+      {m.type === 'video' ? <Video m={m} /> : <img {...responsive(m.src, sizes)} alt={m.alt} loading={load} />}
     </figure>
   )
 }
