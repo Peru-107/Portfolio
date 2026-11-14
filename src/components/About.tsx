@@ -9,8 +9,9 @@ export function About() {
     if (reduced()) return
     const ctx = gsap.context(() => {
       // The statement inks in word by word as it is read
-      // It starts at 0.45, never fainter, so the words can be read before they ink in
-      gsap.fromTo('.about__lead .w', { opacity: 0.45 }, { opacity: 1, stagger: 0.05, ease: 'none', scrollTrigger: { trigger: '.about__lead', start: 'top 80%', end: 'bottom 45%', scrub: true } })
+      // Never fainter than large text can be read at (3:1): ink words start at 0.52,
+      // the magma words, lighter to begin with, at 0.85
+      gsap.fromTo('.about__lead .w', { opacity: (_: number, el: Element) => (el.classList.contains('accent') ? 0.85 : 0.52) }, { opacity: 1, stagger: 0.05, ease: 'none', scrollTrigger: { trigger: '.about__lead', start: 'top 80%', end: 'bottom 45%', scrub: true } })
     }, root)
     return () => ctx.revert()
   }, [])
