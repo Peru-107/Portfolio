@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { projects, site } from '../content'
-import { gsap } from '../lib/motion'
+import { gsap, scrollToY } from '../lib/motion'
 import { linkProps } from '../lib/router'
 import { tick } from '../lib/haptic'
 import { Media } from './Media'
@@ -58,6 +58,25 @@ export function Work() {
       })
       let undo: (() => void) | undefined
       tl.addLabel('start', 0)
+      // While the cards lie stacked they overlap, so only the front one can be
+      // pointed at or tabbed to. The rest become inert until the deal is done
+      const dealtAt = 1 + (cards.length - 1) * 0.08
+      const all = [...r.children] as HTMLElement[]
+      let stacked: boolean | null = null
+      const stack = (on: boolean) => {
+        if (on === stacked) return
+        stacked = on
+        all.forEach((c, i) => (c.inert = on && i > 0))
+      }
+      stack(true)
+      // A keyboard user arriving on the front card: deal the deck so Tab can reach the rest
+      const dealForKeys = () => {
+        const st = tl.scrollTrigger
+        // Only for the keyboard: a click on the front card opens it instead
+        if (!stacked || !st || !all[0]!.matches(':focus-visible')) return
+        scrollToY(Math.ceil(st.start + (st.end - st.start) * (dealtAt / tl.duration())) + 2)
+      }
+      all[0]?.addEventListener('focus', dealForKeys)
       // Dealt: each card flies to its place in a flat row
       cards.forEach((c, i) => {
         tl.to(c, { x: () => slot(i), y: 0, z: 0, rotationY: 0, rotationX: 0, duration: 1 }, i * 0.08)
@@ -74,6 +93,7 @@ export function Work() {
         let on = -1
         tl.eventCallback('onUpdate', () => {
           const t = tl.time()
+          stack(t < dealtAt)
           let best = -1
           let d = Infinity
           cards.forEach((_, i) => {
@@ -91,12 +111,17 @@ export function Work() {
           cards.forEach((c) => c.removeAttribute('data-on'))
         }
       } else {
+        tl.eventCallback('onUpdate', () => stack(tl.time() < dealtAt))
         // Then the whole row slides past, at the same pace the page scrolls
         tl.to(r, { x: () => -travel(), ease: 'none', duration: 0.6 + (travel() / innerWidth) * 1.4 }, '+=0.15')
       }
 
       gsap.to('.w2__bar i', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, scrub: true, invalidateOnRefresh: true } })
-      return undo
+      return () => {
+        undo?.()
+        all[0]?.removeEventListener('focus', dealForKeys)
+        all.forEach((c) => (c.inert = false))
+      }
     })
     return () => mm.revert()
   }, [])

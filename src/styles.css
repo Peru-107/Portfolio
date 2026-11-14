@@ -899,6 +899,11 @@ h1[tabindex="-1"]:focus { outline: none; }
 .header__key kbd { margin-right: 3px; }
 .header__key kbd:last-child { margin-right: 0; }
 @media (hover: none), (max-width: 959px) { .header__key { display: none; } }
+/* Touch and narrow screens: a square key that opens the same menu */
+.header__find { display: none; place-items: center; width: 44px; height: 44px; margin-left: 4px; border: 0; padding: 0; background: transparent; color: inherit; cursor: pointer; transition: background-color 0.25s, color 0.25s; }
+.header__find:active { scale: 0.97; }
+@media (hover: hover) { .header__find:hover { background: var(--ink); color: var(--paper); } }
+@media (hover: none), (max-width: 959px) { .header__find { display: inline-grid; } }
 
 /* Work: one line under the title that says what the deck is */
 .w2__lead { max-width: 30ch; font-size: var(--fs-ui); line-height: 1.4; color: var(--ink-soft); text-align: right; }

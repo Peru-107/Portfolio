@@ -161,8 +161,15 @@ export function Header() {
         <Magnetic><a href="/#contact" onClick={to('contact')}><Roll>Contact</Roll></a></Magnetic>
         <Magnetic><a href="/Perraz-Badhniwalla-CV.pdf" target="_blank" rel="noreferrer"><Roll>CV</Roll></a></Magnetic>
         {/* The command menu's key; it opens on a click too */}
-        <button type="button" className="header__key" aria-label="Open the command menu" onClick={() => dispatchEvent(new Event(OPEN_PALETTE))}>
+        <button type="button" className="header__key" aria-label="Open the command menu" aria-haspopup="dialog" onClick={() => dispatchEvent(new Event(OPEN_PALETTE))}>
           <kbd>{mac ? '⌘' : 'Ctrl'}</kbd><kbd>K</kbd>
+        </button>
+        {/* Phones and tablets have no Ctrl/⌘ K: a small square opens the same menu */}
+        <button type="button" className="header__find" aria-label="Go anywhere on this site" aria-haspopup="dialog" onClick={() => dispatchEvent(new Event(OPEN_PALETTE))}>
+          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+            <circle cx="8.5" cy="8.5" r="5.75" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            <path d="M12.8 12.8 L17.5 17.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square" />
+          </svg>
         </button>
       </nav>
     </header>

@@ -8,7 +8,8 @@ import { tick } from '../lib/haptic'
 // anywhere, typing narrows it, arrows and Enter choose. Every page, project
 // and contact route on the site is one line away.
 
-type Item = { group: string; label: string; hint?: string; run: () => void }
+// run() may report back: false means it didn't work (the email wasn't copied)
+type Item = { group: string; label: string; hint?: string; run: () => void | Promise<boolean> }
 
 const toSection = (id: string) => () => {
   if (location.pathname !== '/') {
@@ -38,7 +39,15 @@ export function Palette() {
         group: 'Reach me',
         label: 'Copy email',
         hint: site.email,
-        run: () => void navigator.clipboard.writeText(site.email).catch(() => (location.href = `mailto:${site.email}`)),
+        run: () =>
+          navigator.clipboard.writeText(site.email).then(
+            () => true,
+            () => {
+              // No clipboard (an insecure page, a refused permission): open the mail app instead
+              location.href = `mailto:${site.email}`
+              return false
+            },
+          ),
       },
       { group: 'Reach me', label: 'Download CV', hint: 'PDF', run: () => void window.open('/Perraz-Badhniwalla-CV.pdf', '_blank', 'noopener') },
       ...site.links.map((l) => ({ group: 'Reach me', label: l.label, hint: l.href.replace(/^https?:\/\/(www\.)?/, ''), run: () => void window.open(l.href, '_blank', 'noopener') })),
@@ -86,11 +95,14 @@ export function Palette() {
     if (!it) return
     tick()
     close()
-    it.run()
-    if (it.label === 'Copy email') {
-      setNote('Email address copied')
-      setTimeout(() => setNote(''), 1800)
-    }
+    const done = it.run()
+    // Announce a copy only once the clipboard has really taken it
+    if (done instanceof Promise)
+      void done.then((ok) => {
+        if (!ok) return
+        setNote('Email address copied')
+        setTimeout(() => setNote(''), 1800)
+      })
   }
 
   let group = ''
