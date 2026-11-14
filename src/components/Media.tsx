@@ -23,22 +23,47 @@ function responsive(src: string, sizes = '(max-width: 759px) 92vw, 60vw') {
 }
 
 // Video plays only while on screen, so six projects never decode at once
-function Video({ m }: { m: Extract<M, { type: 'video' }> }) {
+function Video({ m, sizes }: { m: Extract<M, { type: 'video' }>; sizes?: string }) {
   const v = useRef<HTMLVideoElement>(null)
   useEffect(() => {
     const el = v.current!
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    // A screen or so ahead it starts buffering, so pressing play later never
+    // waits on the network in the middle of a scroll
+    const near = new IntersectionObserver(
+      ([e]) => {
+        if (!e!.isIntersecting) return
+        el.preload = 'auto'
+        near.disconnect()
+      },
+      { rootMargin: '100% 0px' },
+    )
+    near.observe(el)
     const io = new IntersectionObserver(([e]) => (e!.isIntersecting ? el.play().catch(() => {}) : el.pause()), { threshold: 0.25, rootMargin: '200px 0px' })
     io.observe(el)
-    return () => io.disconnect()
+    // Shown only once a real frame is ready: until then the still underneath
+    // shows, so the card never blinks black while the video starts
+    const shown = () => el.setAttribute('data-ready', '')
+    const rvfc = (el as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number }).requestVideoFrameCallback
+    if (rvfc) rvfc.call(el, shown)
+    else el.addEventListener('playing', shown, { once: true })
+    return () => {
+      near.disconnect()
+      io.disconnect()
+      el.removeEventListener('playing', shown)
+    }
   }, [])
   // WebM (VP9) is about a quarter smaller; MP4 stays as the fallback. Nothing
   // downloads until the video is about to play.
   return (
-    <video ref={v} className="media__video" poster={m.poster} muted loop playsInline preload="none" aria-label={m.alt}>
-      {m.src.endsWith('.mp4') && <source src={m.src.replace(/\.mp4$/, '.webm')} type="video/webm" />}
-      <source src={m.src} type="video/mp4" />
-    </video>
+    <>
+      {/* The still the card shows until the film has a frame (used in the work deck) */}
+      <img className="media__poster" {...responsive(m.poster, sizes)} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+      <video ref={v} className="media__video" poster={m.poster} muted loop playsInline preload="none" aria-label={m.alt}>
+        {m.src.endsWith('.mp4') && <source src={m.src.replace(/\.mp4$/, '.webm')} type="video/webm" />}
+        <source src={m.src} type="video/mp4" />
+      </video>
+    </>
   )
 }
 
@@ -48,7 +73,7 @@ export function Media({ m, priority, sizes }: { m: M; priority?: boolean; sizes?
   if (m.type === 'row') {
     return (
       <div className="media media--row" data-shape={m.shape} style={{ background: m.bg }} role="img" aria-label={m.alt}>
-        {m.srcs.map((s) => <img key={s} {...responsive(s, m.shape === 'screens' ? '(max-width: 759px) 60vw, 30vw' : '(max-width: 759px) 30vw, 14vw')} alt="" loading={load} />)}
+        {m.srcs.map((s) => <img key={s} {...responsive(s, m.shape === 'screens' ? '(max-width: 759px) 60vw, 30vw' : '(max-width: 759px) 30vw, 14vw')} alt="" loading={load} decoding="async" />)}
       </div>
     )
   }
@@ -56,7 +81,7 @@ export function Media({ m, priority, sizes }: { m: M; priority?: boolean; sizes?
     return (
       <div className="media media--stack" role="img" aria-label={m.alt}>
         {m.srcs.map((s, i) => (
-          <img key={s} {...responsive(s, sizes)} alt="" loading={load} style={{ ['--i' as string]: i }} />
+          <img key={s} {...responsive(s, sizes)} alt="" loading={load} decoding="async" style={{ ['--i' as string]: i }} />
         ))}
       </div>
     )
@@ -65,7 +90,7 @@ export function Media({ m, priority, sizes }: { m: M; priority?: boolean; sizes?
   return (
     <figure className="media" data-frame={frame}>
       {frame === 'browser' && <span className="media__bar" aria-hidden="true"><i /><i /><i /></span>}
-      {m.type === 'video' ? <Video m={m} /> : <img {...responsive(m.src, sizes)} alt={m.alt} loading={load} />}
+      {m.type === 'video' ? <Video m={m} sizes={sizes} /> : <img {...responsive(m.src, sizes)} alt={m.alt} loading={load} decoding="async" />}
     </figure>
   )
 }

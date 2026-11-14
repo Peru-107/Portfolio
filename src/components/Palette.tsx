@@ -3,6 +3,7 @@ import { projects, site } from '../content'
 import { go } from '../lib/router'
 import { lockScroll, scrollToId } from '../lib/motion'
 import { tick } from '../lib/haptic'
+import { isMuted, setMuted } from '../lib/sound'
 
 // A command menu, the kind product tools have: Ctrl or ⌘ and K opens it from
 // anywhere, typing narrows it, arrows and Enter choose. Every page, project
@@ -50,6 +51,7 @@ export function Palette() {
           ),
       },
       { group: 'Reach me', label: 'Download CV', hint: 'PDF', run: () => void window.open('/Perraz-Badhniwalla-CV.pdf', '_blank', 'noopener') },
+      { group: 'Settings', label: 'Turn click sounds on or off', hint: 'Sound', run: () => setMuted(!isMuted()) },
       ...site.links.map((l) => ({ group: 'Reach me', label: l.label, hint: l.href.replace(/^https?:\/\/(www\.)?/, ''), run: () => void window.open(l.href, '_blank', 'noopener') })),
     ],
     [],

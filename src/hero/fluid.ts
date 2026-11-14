@@ -225,6 +225,10 @@ export type InkOptions = {
   reducedMotion: boolean
   /** Molten rock inside the letters, glowing through the ink that flows over them */
   lava?: boolean
+  /** The page's animation clock (GSAP's ticker). Given one, the ink steps on it,
+   * after the scroll has moved and the word has been placed, rather than on a
+   * second animation loop of its own that could run a frame early or late */
+  ticker?: { add(fn: () => void): void; remove(fn: () => void): void }
 }
 
 export class InkField {
@@ -291,7 +295,9 @@ export class InkField {
   // their size: fewer pressure passes, a dye field sized to the screen, and a
   // lower pixel ratio. If frames still run long, the ratio steps down again.
   private light = matchMedia('(hover: none), (max-width: 759px)').matches || (navigator.hardwareConcurrency || 8) <= 4
-  private dpr = Math.min(window.devicePixelRatio, this.light ? 1.5 : 2)
+  // 1.5 is as sharp as the ink reads at any size; beyond it (2x and 3x screens)
+  // every extra pixel is GPU time spent while the page is trying to scroll
+  private dpr = Math.min(window.devicePixelRatio || 1, 1.5)
   private iterations = this.light ? 12 : 18
   private slowFrames = 0
   private sampled = 0
@@ -363,7 +369,7 @@ export class InkField {
     const c = this.o.canvas
     const w = c.clientWidth || 1
     const h = c.clientHeight || 1
-    this.renderer.setSize(w, h)
+    const resized = this.renderer.setSize(w, h)
     const aspect = w / h
     const res = (base: number) => (aspect >= 1 ? [Math.round(base * aspect), base] : [base, Math.round(base / aspect)])
     ;[this.simW, this.simH] = res(this.light ? 128 : 160)
@@ -382,14 +388,21 @@ export class InkField {
     this.sampleMask()
     // A still frame is lost with the old buffers: settle a fresh one
     if (this.settled) this.still()
+    else if (resized) this.redrawNow()
   }
 
   /** The canvas changed size a little (a phone's address bar, a re-measure):
    * match the drawing surface to it so the letters keep their proportions,
    * without reallocating the simulation and losing the ink */
   fit() {
-    this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1)
-    this.paint()
+    if (this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1)) this.redrawNow()
+    else this.paint()
+  }
+
+  /** Resizing the canvas empties it; draw the held ink into it in the same task,
+   * so no frame is ever shown with nothing in it */
+  private redrawNow() {
+    if (this.dye) this.display()
   }
 
   // Points inside the letter, for the ambient drips and the opening pour
@@ -535,7 +548,7 @@ export class InkField {
   private frame = () => {
     if (!this.running) return
     this.tick(true)
-    if (this.running) this.raf = requestAnimationFrame(this.frame)
+    if (this.running && !this.o.ticker) this.raf = requestAnimationFrame(this.frame)
   }
 
   /** One step of the simulation and one picture of it */
@@ -596,14 +609,26 @@ export class InkField {
    * draw the held ink again in the word's new place, at most once a frame */
   private paint() {
     if (this.running || this.paintRaf || !this.dye) return
+    const t = this.o.ticker
     const go = () => {
       // A software renderer gets fewer repaints: each one costs it a lot
-      if (this.software && performance.now() - this.paintedAt < 90) return void (this.paintRaf = requestAnimationFrame(go))
+      if (this.software && performance.now() - this.paintedAt < 90) {
+        if (!t) this.paintRaf = requestAnimationFrame(go)
+        return
+      }
+      t?.remove(go)
       this.paintRaf = 0
+      this.paintOff = null
       if (!this.running) this.display()
     }
-    this.paintRaf = requestAnimationFrame(go)
+    // On the page's clock when there is one: drawn in the same frame the word moved
+    if (t) {
+      this.paintRaf = -1
+      this.paintOff = () => t.remove(go)
+      t.add(go)
+    } else this.paintRaf = requestAnimationFrame(go)
   }
+  private paintOff: (() => void) | null = null
 
   /** Pour, let it spread for a moment, then hold: one settled frame, no loop */
   private still(frames = this.software ? 0 : 60) {
@@ -671,13 +696,15 @@ export class InkField {
     this.slowRun = 0
     this.running = true
     this.last = performance.now()
-    this.raf = requestAnimationFrame(this.frame)
+    if (this.o.ticker) this.o.ticker.add(this.frame)
+    else this.raf = requestAnimationFrame(this.frame)
   }
   private stilled = false
 
   stop() {
     this.running = false
     cancelAnimationFrame(this.raf)
+    this.o.ticker?.remove(this.frame)
   }
 
   /** Paused (idle or off screen) rather than settled: start() picks up where it left off */
@@ -693,6 +720,7 @@ export class InkField {
   dispose() {
     this.stop()
     cancelAnimationFrame(this.paintRaf)
+    this.paintOff?.()
     clearTimeout(this.sampleTimer)
     ;[this.vel, this.dye, this.pressure].forEach((d) => (d.read.dispose(), d.write.dispose()))
     this.div.dispose()

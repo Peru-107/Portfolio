@@ -114,7 +114,12 @@ export class Renderer {
   private ratio = 1
 
   constructor(private canvas: HTMLCanvasElement) {
-    const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: false })
+    // alpha: an opaque canvas starts (and restarts, after any resize) as solid
+    // black until it is drawn, and on Windows it can be lifted into a hardware
+    // overlay that flashes black when it is handed back to the page. With an
+    // alpha channel an undrawn frame is see-through (paper shows), and the
+    // shaders still write alpha 1, so every drawn frame looks the same
+    const gl = canvas.getContext('webgl2', { antialias: false, alpha: true, premultipliedAlpha: true, depth: false, stencil: false, powerPreference: 'high-performance', preserveDrawingBuffer: false })
     // Ink lives in half floats (it goes negative and above one), which the GPU must be able to draw into
     if (!gl || !gl.getExtension('EXT_color_buffer_float')) throw new Error('WebGL 2 with float targets is not available')
     gl.getExtension('EXT_color_buffer_half_float')
@@ -140,11 +145,14 @@ export class Renderer {
     this.ratio = r
   }
 
+  /** True when the drawing surface really changed size (and so was emptied) */
   setSize(w: number, h: number) {
     const cw = Math.max(1, Math.round(w * this.ratio))
     const ch = Math.max(1, Math.round(h * this.ratio))
-    if (this.canvas.width !== cw) this.canvas.width = cw
-    if (this.canvas.height !== ch) this.canvas.height = ch
+    let changed = false
+    if (this.canvas.width !== cw) (this.canvas.width = cw), (changed = true)
+    if (this.canvas.height !== ch) (this.canvas.height = ch), (changed = true)
+    return changed
   }
 
   target(w: number, h: number) {

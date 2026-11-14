@@ -34,7 +34,8 @@ function drawMask(c: HTMLCanvasElement, w: number, h: number, text: string, layo
   const ch = Math.max(2, Math.round(h * scale))
   if (c.width !== cw) c.width = cw
   if (c.height !== ch) c.height = ch
-  const ctx = c.getContext('2d')!
+  // Read back now and then (the drips sample it): kept in memory, so a read never stalls on the GPU
+  const ctx = c.getContext('2d', { willReadFrequently: true })!
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, c.width, c.height)
   const narrow = w < 760 || layout === 'center'
@@ -108,7 +109,7 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     let alive = true
     try {
       drawMask(mask, c.clientWidth, c.clientHeight, text, layout, rest)
-      f = new InkField({ canvas: c, mask, paper: PAPER, inks: INKS, reducedMotion: reduced, lava: true })
+      f = new InkField({ canvas: c, mask, paper: PAPER, inks: INKS, reducedMotion: reduced, lava: true, ticker: gsap.ticker })
       zoom()
     } catch {
       fallback.current?.setAttribute('data-on', '')
@@ -119,8 +120,14 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
     f.edges = layout === 'wordmark'
     // Redraw once the display face is in, and again if any font loads later:
     // a shape drawn in a fallback face must never stay on screen
+    // Only the display face changes the shape: once it is in, later font loads
+    // (the typewriter's face, the first time someone types) leave the ink alone
+    // instead of redrawing and re-reading the whole shape mid-interaction
+    let faceIn = false
     const fontsIn = () => {
-      if (!alive) return
+      if (!alive || faceIn) return
+      if (!document.fonts.check('800 100px Panchang')) return
+      faceIn = true
       redraw()
       f.refreshMask()
     }
@@ -153,7 +160,9 @@ export function InkP({ play, onStir, text = 'P', layout = 'hero', anchor, track 
         if (onScreen && wanted.current && !idle) f.start()
         else f.stop()
       },
-      { threshold: 0, rootMargin: '25% 0px 25% 0px' },
+      // Stops the moment the hero is fully off screen, so the next section
+      // never shares the GPU with ink nobody can see; the held frame stays
+      { threshold: 0 },
     )
     io.observe(c)
 

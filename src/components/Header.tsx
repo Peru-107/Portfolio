@@ -5,6 +5,7 @@ import { gsap, reduced, scrollToId, ScrollTrigger } from '../lib/motion'
 import { Magnetic } from './Magnetic'
 import { Roll } from './Roll'
 import { OPEN_PALETTE } from './Palette'
+import { isMuted, onMuted, play, setMuted } from '../lib/sound'
 
 function useClock() {
   const fmt = () => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: site.timezone }).format(new Date())
@@ -117,6 +118,34 @@ function useLens(nav: React.RefObject<HTMLElement>, lens: React.RefObject<HTMLSp
   }, [nav, lens])
 }
 
+// The clicks' mute key: a small speaker beside the menu key, on every screen
+function SoundKey() {
+  const [muted, set] = useState(isMuted)
+  useEffect(() => onMuted(set), [])
+  return (
+    <button
+      type="button"
+      className="header__sound"
+      aria-pressed={muted}
+      aria-label={muted ? 'Sound is off. Turn click sounds on' : 'Sound is on. Turn click sounds off'}
+      title={muted ? 'Sound off' : 'Sound on'}
+      onClick={() => {
+        setMuted(!muted)
+        if (muted) play('tick')
+      }}
+    >
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+        <path d="M3.5 7.5h3l4-3.5v12l-4-3.5h-3z" fill="currentColor" />
+        {muted ? (
+          <path d="M13.5 7.5l4.5 5M18 7.5l-4.5 5" stroke="currentColor" strokeWidth="1.6" fill="none" />
+        ) : (
+          <path d="M13.2 7.2a4 4 0 0 1 0 5.6M15.4 5a7 7 0 0 1 0 10" stroke="currentColor" strokeWidth="1.6" fill="none" />
+        )}
+      </svg>
+    </button>
+  )
+}
+
 const mac = typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent)
 
 export function Header() {
@@ -164,6 +193,7 @@ export function Header() {
         <button type="button" className="header__key" aria-label="Open the command menu" aria-haspopup="dialog" onClick={() => dispatchEvent(new Event(OPEN_PALETTE))}>
           <kbd>{mac ? '⌘' : 'Ctrl'}</kbd><kbd>K</kbd>
         </button>
+        <SoundKey />
         {/* Phones and tablets have no Ctrl/⌘ K: a small square opens the same menu */}
         <button type="button" className="header__find" aria-label="Go anywhere on this site" aria-haspopup="dialog" onClick={() => dispatchEvent(new Event(OPEN_PALETTE))}>
           <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">

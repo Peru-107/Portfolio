@@ -28,7 +28,10 @@ export function startScroll() {
   // A steady lerp rather than a fixed duration: every wheel step, large or small, glides the same way
   lenis = new Lenis({ lerp: 0.085, smoothWheel: true, wheelMultiplier: 0.9 })
   lenis.on('scroll', ScrollTrigger.update)
-  gsap.ticker.add((t) => lenis?.raf(t * 1000))
+  // First on the clock, ahead of anything added earlier (the hero's ink is set
+  // up before this runs): each frame the scroll moves, the scroll animations
+  // place everything, and only then does anything read positions or draw
+  gsap.ticker.add((t) => lenis?.raf(t * 1000), false, true)
   gsap.ticker.lagSmoothing(0)
 }
 

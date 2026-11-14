@@ -61,6 +61,10 @@ Decided with Perraz, 2 November 2026; brought up to date with the code on 14 Nov
   45 seconds without input (any pointer, key, scroll or wheel wakes it), and on a software
   GPU or after sustained long frames it settles into a still frame that still follows the
   scroll glide. Without WebGL2 it falls back to a Panchang "P".
+- Smoothness rules: the ink steps on GSAP's ticker (one clock, after Lenis has scrolled and
+  ScrollTrigger has placed the word), its canvas has an alpha channel over paper so an undrawn
+  frame is never black, pixel ratio is capped at 1.5, and a card's film is shown only once it
+  has a real frame (its still sits underneath until then).
 
 ## Interaction
 
@@ -74,6 +78,7 @@ Decided with Perraz, 2 November 2026; brought up to date with the code on 14 Nov
   square lens glides between them). It hides while reading down and returns on scroll up. A thin
   progress line runs along it, and a square back-to-top button appears far down the page.
 - Command menu: Ctrl/⌘ + K from anywhere ("Where to?"); every page, project and contact route
+- Sound: three very quiet clicks made in Web Audio (no files): a soft key for buttons and links, a deeper clack for opening a project or case page, a light tick for toggles and the header/side-index hovers. On by default; the speaker key after Ctrl K in the header (and "Turn click sounds on or off" in the command menu) mutes them, remembered in localStorage (`pb-muted`). Nothing is created until the first click or key
   is one line away. On touch and narrow screens a square search key in the header opens it.
   "Copied" is announced only when the clipboard really took the email.
 - Side index (wide screens, home only): thin lines down the left edge, one per section; the

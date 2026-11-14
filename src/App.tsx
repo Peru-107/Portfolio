@@ -13,6 +13,7 @@ import { setTransition, usePath } from './lib/router'
 import { useReveals } from './lib/reveal'
 import { gsap, reduced, scrollTop, scrollToY, ScrollTrigger, startScroll } from './lib/motion'
 import { site } from './content'
+import { startSound } from './lib/sound'
 
 // Case studies and the lab load only when visited, so the first screen downloads less
 const Case = lazy(() => import('./components/Case').then((m) => ({ default: m.Case })))
@@ -27,6 +28,7 @@ export default function App() {
 
   useEffect(() => {
     startScroll()
+    startSound()
     // Opening a project: the card grows to fill the screen, the case study loads
     // beneath it, and the card settles into the page's header image
     const expand = (from: HTMLElement, swap: () => void) => {
