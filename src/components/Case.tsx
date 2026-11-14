@@ -83,13 +83,21 @@ export function Case({ slug }: { slug: string }) {
     if (!el || !link || !matchMedia('(hover: hover) and (pointer: fine)').matches) return
     const x = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3.out' })
     const y = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3.out' })
+    // Above and to the right of the pointer, so the project's name stays readable; kept on screen
+    const at = (e: PointerEvent) => {
+      const above = e.clientY - el.offsetHeight - 32
+      return {
+        x: Math.max(16, Math.min(e.clientX + 24, innerWidth - el.offsetWidth - 16)),
+        y: above >= 16 ? above : Math.min(e.clientY + 32, innerHeight - el.offsetHeight - 16),
+      }
+    }
     const move = (e: PointerEvent) => {
-      // To the right of the pointer, kept on screen
-      x(Math.min(e.clientX + 36, innerWidth - el.offsetWidth - 16))
-      y(Math.max(16, Math.min(e.clientY - el.offsetHeight / 2, innerHeight - el.offsetHeight - 16)))
+      const t = at(e)
+      x(t.x)
+      y(t.y)
     }
     const on = (e: PointerEvent) => {
-      gsap.set(el, { x: Math.min(e.clientX + 36, innerWidth - el.offsetWidth - 16), y: e.clientY - el.offsetHeight / 2 })
+      gsap.set(el, at(e))
       el.setAttribute('data-on', '')
     }
     const off = () => el.removeAttribute('data-on')
