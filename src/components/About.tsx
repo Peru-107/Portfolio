@@ -40,7 +40,7 @@ export function About() {
         ))}
       </dl>
       <p className="about__rest" data-reveal="fade">{rest}</p>
-      <div className="about__tools">
+      <div className="about__tools" data-reveal="line">
         {site.tools.map((t, i) => (
           <div key={t.group} className="about__group" data-reveal="fade" style={{ ['--i' as string]: i }}>
             <h3><span className="mark" data-reveal="mark">{t.group}</span></h3>

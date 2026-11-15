@@ -29,8 +29,11 @@ export const site = {
   },
   about: [
     'I study two things at once: computer engineering and finance. One taught me how to build a product, the other how to ask whether it is worth building.',
-    'Outside class I ship my own apps. I design them, write the code and keep going until they feel right. Before all of this I represented India at the Karate World Championship, which is where I learned to practise the same move a thousand times.',
+    'Outside class I ship my own apps. I design them, write the code, and keep going until they feel right. Before all of this I represented India at the Karate World Championship — where I learned to practise the same move a thousand times.',
   ],
+  // Contact: one quiet question, then the email as the section’s hero
+  contactAsk: { before: 'Got an idea that', accent: 'should exist?' },
+  contactNote: 'One email is enough.',
   tools: [
     { group: 'Design', items: ['UI and UX design', 'Design systems', 'Motion', 'Prototyping'] },
     { group: 'Build', items: ['TypeScript and React', 'Next.js', 'Python', 'Java'] },
