@@ -43,9 +43,16 @@ export function Contact() {
     }
   }
 
+  const { before, accent } = site.contactAsk
+
   return (
     <section id="contact" className="contact" aria-labelledby="contact-title">
-      <h2 id="contact-title" className="contact__title" data-reveal="rise"><span>Got an idea that <span className="accent">should exist?</span></span></h2>
+      <header className="contact__head">
+        <h2 id="contact-title" className="contact__title" data-reveal="rise">
+          <span>{before} <span className="accent">{accent}</span></span>
+        </h2>
+        <p className="contact__note" data-reveal="fade">{site.contactNote}</p>
+      </header>
       <div className="contact__mail" data-reveal="fade">
         <a ref={mail} href={`mailto:${site.email}`} className="contact__email" data-cursor="Write" aria-label={`Email ${site.email}`}>
           <span className="contact__line" aria-hidden="true">{user}</span>

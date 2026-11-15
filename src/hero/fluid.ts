@@ -121,6 +121,8 @@ const DISPLAY = head + /* glsl */ `
   // The pointer's recent path: position and velocity (xy, zw), and how much each point still pulls
   uniform vec4 trail[12]; uniform vec4 trailK[3]; uniform vec3 warpBurst;
   uniform float lava; uniform float lavaZoom;
+  // 1 = fewer molten folds / slower time (light path or after adapt step-down)
+  uniform float cheapMolten;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   // Cheap smooth noise for an organic wobble in the swirl
   float wob(vec2 p) { return sin(p.x * 3.1 + sin(p.y * 2.3 + time)) * cos(p.y * 2.7 - sin(p.x * 1.9 - time * 0.8)); }
@@ -129,6 +131,12 @@ const DISPLAY = head + /* glsl */ `
   // it (a vortex), drags it along (a smudge), and stirs it with a little noise.
   // The ink is read through this warp, so the letters twist like liquid glass
   vec2 warp(vec2 uv) {
+    // Idle pointer: trail and burst are near zero — skip the 12-point swirl
+    float activity = warpBurst.z
+      + trailK[0].x + trailK[0].y + trailK[0].z + trailK[0].w
+      + trailK[1].x + trailK[1].y + trailK[1].z + trailK[1].w
+      + trailK[2].x + trailK[2].y + trailK[2].z + trailK[2].w;
+    if (activity < 0.002) return uv;
     float aspect = dyeTexel.y / dyeTexel.x;
     vec2 p = uv * vec2(aspect, 1.0);
     vec2 swirl = vec2(0.0);
@@ -164,8 +172,10 @@ const DISPLAY = head + /* glsl */ `
   vec3 molten(vec2 uv) {
     float aspect = dyeTexel.y / dyeTexel.x;
     vec2 q = (uv - 0.5) * vec2(aspect, 1.0) * 2.6 * lavaZoom;
-    float k = time * 0.36;
+    float k = time * (cheapMolten > 0.5 ? 0.22 : 0.36);
+    float folds = cheapMolten > 0.5 ? 5.0 : 9.0;
     for (float i = 1.0; i < 9.0; i++) {
+      if (i >= folds) break;
       q.x += 0.55 / i * sin(i * 1.7 * q.y + k + i * 0.9);
       q.y += 0.45 / i * cos(i * 1.3 * q.x - k * 0.8 + i * 1.7);
     }
@@ -298,12 +308,17 @@ export class InkField {
   // 1.5 is as sharp as the ink reads at any size; beyond it (2x and 3x screens)
   // every extra pixel is GPU time spent while the page is trying to scroll
   private dpr = Math.min(window.devicePixelRatio || 1, 1.5)
-  private iterations = this.light ? 12 : 18
+  // Jacobi diminishing returns after ~8–12 for this look; stay near the light path
+  private iterations = this.light ? 8 : 12
   private slowFrames = 0
   private sampled = 0
   // Average frame time, smoothed; watched for as long as the ink runs
   private avgMs = 16
   private slowRun = 0
+  /** `?perf=1` exposes avgMs / iterations / dpr / settled on window.__inkPerf */
+  private readonly perf =
+    typeof location !== 'undefined' && /(?:^|[?&])perf=1(?:&|$)/.test(location.search)
+  private perfHud: HTMLElement | null = null
   /** A software renderer (no real GPU: SwiftShader, llvmpipe, Basic Render) can't run the
    * simulation smoothly, so the ink settles into one still frame there from the start */
   readonly software: boolean
@@ -337,9 +352,27 @@ export class InkField {
     m('gradient', GRADIENT, { uPressure: tex(), uVelocity: tex() })
     m('fade', FADE, { uTexture: tex(), value: { value: 0.8 } })
     m('flood', FLOOD, { uTarget: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, color: { value: [0, 0, 0] } })
-    m('display', DISPLAY, { uDye: tex(), uVelocity: tex(), uMask: { value: this.maskTex }, maskXf: { value: this.maskXf }, paper: { value: [...o.paper] }, dyeTexel: { value: [0, 0] }, time: { value: 0 }, outside: { value: 0.32 }, reveal: { value: 0 }, edges: { value: 0 }, trail: { value: this.trail }, trailK: { value: this.trailK }, warpBurst: { value: this.warpBurst }, lava: { value: o.lava ? 1 : 0 }, lavaZoom: { value: 1 } })
+    m('display', DISPLAY, {
+      uDye: tex(),
+      uVelocity: tex(),
+      uMask: { value: this.maskTex },
+      maskXf: { value: this.maskXf },
+      paper: { value: [...o.paper] },
+      dyeTexel: { value: [0, 0] },
+      time: { value: 0 },
+      outside: { value: 0.32 },
+      reveal: { value: 0 },
+      edges: { value: 0 },
+      trail: { value: this.trail },
+      trailK: { value: this.trailK },
+      warpBurst: { value: this.warpBurst },
+      lava: { value: o.lava ? 1 : 0 },
+      lavaZoom: { value: 1 },
+      cheapMolten: { value: this.light || this.software ? 1 : 0 },
+    })
 
     this.resize()
+    if (this.perf) this.mountPerfHud()
   }
 
   static isSoftware(gl: WebGL2RenderingContext) {
@@ -373,9 +406,9 @@ export class InkField {
     const aspect = w / h
     const res = (base: number) => (aspect >= 1 ? [Math.round(base * aspect), base] : [base, Math.round(base / aspect)])
     ;[this.simW, this.simH] = res(this.light ? 128 : 160)
-    // The dye never needs more pixels than the screen shows along its short side
+    // Harder dye caps: sharpness is already DPR-capped at 1.5; extra pixels are GPU time
     const short = Math.min(w, h) * this.dpr
-    ;[this.dyeW, this.dyeH] = res(Math.min(this.light ? 420 : 720, Math.round(short * 0.9), Math.round(Math.max(w, h) * 0.9)))
+    ;[this.dyeW, this.dyeH] = res(Math.min(this.light ? 320 : 520, Math.round(short * 0.9), Math.round(Math.max(w, h) * 0.9)))
     ;[this.vel, this.dye, this.pressure].forEach((d) => d && (d.read.dispose(), d.write.dispose()))
     this.div?.dispose()
     this.curl?.dispose()
@@ -585,8 +618,9 @@ export class InkField {
       const q = this.queue.shift()!
       this.splat(q.x, q.y, q.dx, q.dy, q.color, q.r)
     }
-    // Slow drips keep the letter wet when nobody is touching it
-    if (this.t - this.ambientAt > 0.2 && this.maskPoints.length) {
+    // Quieter ambient drips: keep the letter wet without a 5Hz splat forever
+    const ambientGap = this.light ? 0.55 : 0.35
+    if (this.t - this.ambientAt > ambientGap && this.maskPoints.length) {
       this.ambientAt = this.t
       const pt = this.onWord(this.maskPoints[Math.floor(Math.random() * this.maskPoints.length)]!)
       const a = Math.random() * Math.PI * 2
@@ -651,34 +685,74 @@ export class InkField {
     this.stop()
     if (!was && !this.stilled) this.still()
     this.stilled = true
+    this.exposePerf(this.avgMs)
     window.dispatchEvent(new Event('ink:settled'))
   }
 
-  // Watches real frame times for a few seconds after each start; a device that
-  // can't keep up drops pressure passes first and only then a little sharpness
+  // Watches real frame times against a 60fps budget; a device that can't keep
+  // up drops pressure passes first, then sharpness (down to 1×), then settles
   private adapt(ms: number) {
     // A frame over 200ms is a hidden tab or a hiccup, not the simulation's cost
     if (ms > 200) return
-    // Watched for as long as it runs: if it stays under about 22 frames a second
-    // after every step down, settle into a still frame instead of stuttering
-    this.avgMs += (ms - this.avgMs) * 0.05
-    const exhausted = this.iterations <= 8 && this.dpr <= Math.min(1.5, window.devicePixelRatio || 1)
-    this.slowRun = this.avgMs > 45 ? this.slowRun + 1 : 0
-    if (this.slowRun > (exhausted ? 60 : 180)) return void this.settle()
+    const FRAME = 1000 / 60
+    this.avgMs += (ms - this.avgMs) * 0.08
+    // Allow 1.0 DPR floor so mid GPUs can hold 60fps after stepping down
+    const floor = 1
+    const exhausted = this.iterations <= 6 && this.dpr <= floor
+    // Settle when we cannot hold ~55fps after stepping down — not after ~22fps
+    this.slowRun = this.avgMs > 18 ? this.slowRun + 1 : 0
+    if (this.slowRun > (exhausted ? 45 : 90)) {
+      this.exposePerf(ms)
+      return void this.settle()
+    }
+    this.exposePerf(ms)
     if (this.sampled > 240) return
     this.sampled++
-    this.slowFrames = ms > 22 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 1)
-    if (this.slowFrames < 30) return
+    this.slowFrames = ms > FRAME ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 2)
+    if (this.slowFrames < 12) return
     this.slowFrames = 0
-    // Sharpness goes last: fewer pressure passes first, and the pixel ratio
-    // never drops below 1.5 on screens that have one
-    const floor = Math.min(1.5, window.devicePixelRatio || 1)
-    if (this.iterations > 8) this.iterations -= 4
-    else if (this.dpr > floor) {
-      this.dpr = Math.max(floor, this.dpr - 0.25)
+    if (this.iterations > 6) {
+      this.iterations -= 2
+      this.cheapenMolten()
+    } else if (this.dpr > floor) {
+      this.dpr = Math.max(floor, +(this.dpr - 0.25).toFixed(2))
       this.renderer.setPixelRatio(this.dpr)
       this.renderer.setSize(this.o.canvas.clientWidth || 1, this.o.canvas.clientHeight || 1)
+      this.cheapenMolten()
     }
+  }
+
+  /** After a step-down (or on light/software), use fewer molten folds in the display shader */
+  private cheapenMolten() {
+    const u = this.mats.display?.uniforms.cheapMolten
+    if (u) u.value = 1
+  }
+
+  private exposePerf(ms: number) {
+    if (!this.perf) return
+    const snap = {
+      avgMs: +this.avgMs.toFixed(2),
+      ms: +ms.toFixed(2),
+      iterations: this.iterations,
+      dpr: this.dpr,
+      settled: this.settled,
+      light: this.light,
+      dye: [this.dyeW, this.dyeH] as [number, number],
+    }
+    ;(window as Window & { __inkPerf?: typeof snap }).__inkPerf = snap
+    if (this.perfHud) {
+      this.perfHud.textContent = `ink ${snap.avgMs}ms · iter ${snap.iterations} · dpr ${snap.dpr}${snap.settled ? ' · settled' : ''}`
+    }
+  }
+
+  private mountPerfHud() {
+    const el = document.createElement('div')
+    el.setAttribute('data-ink-perf', '1')
+    el.style.cssText =
+      'position:fixed;left:8px;bottom:8px;z-index:99999;font:11px/1.3 ui-monospace,monospace;padding:6px 8px;background:rgba(0,0,0,.72);color:#e8e8e8;border-radius:4px;pointer-events:none'
+    el.textContent = 'ink perf…'
+    document.body.appendChild(el)
+    this.perfHud = el
   }
 
   start() {
@@ -722,6 +796,8 @@ export class InkField {
     cancelAnimationFrame(this.paintRaf)
     this.paintOff?.()
     clearTimeout(this.sampleTimer)
+    this.perfHud?.remove()
+    this.perfHud = null
     ;[this.vel, this.dye, this.pressure].forEach((d) => (d.read.dispose(), d.write.dispose()))
     this.div.dispose()
     this.curl.dispose()

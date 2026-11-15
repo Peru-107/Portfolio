@@ -9,10 +9,9 @@ import { tick } from '../lib/haptic'
 
 export type Shot = { src: string; alt: string }
 
-const SIDE = 0.7 // scale of the cards beside the front one
+const SIDE = 0.68 // scale of the cards beside the front one (was 0.7; slightly smaller to keep depth read without CSS blur)
 const DEPTH = 170 // px each step goes back
 const TURN = 20 // degrees the side cards turn away
-const BLUR = 6
 
 export function Depth({ shots, label }: { shots: Shot[]; label: string }) {
   const stage = useRef<HTMLDivElement>(null)
@@ -21,7 +20,9 @@ export function Depth({ shots, label }: { shots: Shot[]; label: string }) {
   const pos = useRef({ p: 0, target: 0 })
   const n = shots.length
 
-  // Places every card for a progress value p (0 = first screen in front)
+  // Places every card for a progress value p (0 = first screen in front).
+  // Soft focus used to be live CSS blur() up to 6px — that taxes the compositor
+  // every drag frame. Depth read now comes from z / rotateY / scale / opacity only.
   const render = () => {
     const st = stage.current
     if (!st) return
@@ -36,11 +37,12 @@ export function Depth({ shots, label }: { shots: Shot[]; label: string }) {
       const z = -Math.min(a, 4) * DEPTH
       const r = -Math.max(-1, Math.min(1, o)) * TURN
       const s = 1 - (1 - SIDE) * Math.min(a, 1)
-      const op = 1 - Math.min(Math.max(a - 3, 0) / 1.3, 1)
-      const b = Math.min(Math.max(a - 0.35, 0) * 2.6, BLUR)
+      // Near sides dim a little (replaces blur softness); far cards still fade out
+      const soft = 1 - Math.min(a, 1) * 0.22
+      const far = 1 - Math.min(Math.max(a - 3, 0) / 1.3, 1)
+      const op = soft * far
       c.style.transform = `translate(-50%, -50%) translate3d(${x.toFixed(1)}px, 0, ${z.toFixed(1)}px) rotateY(${r.toFixed(2)}deg) scale(${s.toFixed(3)})`
       c.style.opacity = op.toFixed(3)
-      c.style.filter = b > 0.05 ? `blur(${b.toFixed(2)}px)` : 'none'
       c.style.zIndex = String(Math.round(1000 - a * 10))
     })
   }

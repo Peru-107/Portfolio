@@ -34,8 +34,10 @@ export function Work() {
       const travel = () => Math.max(0, slot(cards.length - 1) + cardW() + start() - innerWidth)
       const length = () => innerHeight * 1.2 + travel()
 
-      // Stacked: on the right (centred on narrow screens), each card further back and turned away
+      // Stacked: on the right (centred on narrow screens), each card further back and turned away.
+      // force3D keeps scrub on translate3d/rotate compositing (no layout/paint props).
       gsap.set(cards, {
+        force3D: true,
         x: (i) => (wide() ? innerWidth * 0.46 + i * 46 : (innerWidth - cardW()) / 2 + i * 14),
         y: (i) => i * (wide() ? -16 : -10),
         z: (i) => i * -90,
@@ -43,12 +45,13 @@ export function Work() {
         rotationX: 10,
         zIndex: (i) => cards.length - i,
       })
-      gsap.set(caps, { autoAlpha: 0, y: 10 })
+      gsap.set(caps, { force3D: true, autoAlpha: 0, y: 10 })
+      gsap.set(r, { force3D: true, x: 0 })
 
       // Linear against the scroll, so the deal never seems to stall. On phones the
       // deck settles on one card at a time under the thumb, with a small tick
       const tl = gsap.timeline({
-        defaults: { ease: 'none' },
+        defaults: { ease: 'none', force3D: true },
         scrollTrigger: {
           trigger: root.current,
           start: 'top top',
@@ -73,6 +76,28 @@ export function Work() {
         all.forEach((c, i) => (c.inert = on && i > 0))
       }
       stack(true)
+      // Only the frontmost card should decode video; others stay on their poster.
+      // Re-check each scrub tick so Media’s IntersectionObserver cannot restart off-front films.
+      const films = cards.map((c) => Array.from(c.querySelectorAll<HTMLVideoElement>('video')))
+      let on = -1
+      const setOn = (best: number) => {
+        if (best !== on) {
+          if (on >= 0) cards[on]?.removeAttribute('data-on')
+          on = best
+          if (on >= 0) cards[on]?.setAttribute('data-on', '')
+        }
+        for (let i = 0; i < films.length; i++) {
+          const want = i === best
+          for (const v of films[i]!) {
+            if (want) {
+              if (v.paused) v.play().catch(() => {})
+            } else if (!v.paused) {
+              v.pause()
+            }
+          }
+        }
+      }
+      setOn(0)
       // A keyboard user arriving on the front card: deal the deck so Tab can reach the rest
       const dealForKeys = () => {
         const st = tl.scrollTrigger
@@ -94,7 +119,6 @@ export function Work() {
         // No hover under a thumb: the card resting in the middle is the one that
         // resolves from halftone dots into its full picture
         root.current!.setAttribute('data-steps', '')
-        let on = -1
         tl.eventCallback('onUpdate', () => {
           const t = tl.time()
           stack(t < dealtAt)
@@ -105,19 +129,38 @@ export function Work() {
             if (dd < d) (d = dd), (best = i)
           })
           if (t < tl.labels.card0! - 0.1) best = -1
-          if (best === on) return
-          cards[on]?.removeAttribute('data-on')
-          on = best
-          cards[on]?.setAttribute('data-on', '')
+          setOn(best)
         })
         undo = () => {
           root.current?.removeAttribute('data-steps')
           cards.forEach((c) => c.removeAttribute('data-on'))
+          films.forEach((vs) => vs.forEach((v) => v.pause()))
         }
       } else {
-        tl.eventCallback('onUpdate', () => stack(tl.time() < dealtAt))
+        // Wide: frontmost from slot + row x (no layout reads on scrub)
+        tl.eventCallback('onUpdate', () => {
+          stack(tl.time() < dealtAt)
+          if (tl.time() < dealtAt) {
+            setOn(0)
+            return
+          }
+          const rx = Number(gsap.getProperty(r, 'x')) || 0
+          const mid = innerWidth / 2
+          const w = cardW()
+          let best = 0
+          let d = Infinity
+          for (let i = 0; i < cards.length; i++) {
+            const dd = Math.abs(slot(i) + w / 2 + rx - mid)
+            if (dd < d) (d = dd), (best = i)
+          }
+          setOn(best)
+        })
         // Then the whole row slides past, at the same pace the page scrolls
         tl.to(r, { x: () => -travel(), ease: 'none', duration: 0.6 + (travel() / innerWidth) * 1.4 }, '+=0.15')
+        undo = () => {
+          cards.forEach((c) => c.removeAttribute('data-on'))
+          films.forEach((vs) => vs.forEach((v) => v.pause()))
+        }
       }
 
       gsap.to('.w2__bar i', { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.current, start: 'top top', end: () => `+=${length()}`, scrub: true, invalidateOnRefresh: true } })
@@ -143,7 +186,7 @@ export function Work() {
             {/* Phones held upright get tall cards; their images load only there */}
             {p.portrait && <div className="w2__media w2__media--portrait"><Media m={p.portrait} sizes={CARD} /></div>}
             <div className="w2__cap">
-              <p className="w2__kind">{p.kind}, {p.year}</p>
+              <p className="w2__kind"><span>{p.role}</span><span className="w2__sep" aria-hidden="true"> · </span><span>{p.year}</span></p>
               <p className="w2__name"><Roll>{p.title}</Roll></p>
             </div>
           </a>
@@ -160,7 +203,7 @@ export function Work() {
             </div>
           </div>
           <div className="w2__cap">
-            <p className="w2__kind">Research desk for Indian markets</p>
+            <p className="w2__kind"><span>Design and build</span><span className="w2__sep" aria-hidden="true"> · </span><span>Soon</span></p>
             <p className="w2__name">{site.teaser.title}</p>
           </div>
         </div>
