@@ -68,6 +68,11 @@ const inlineCss = (): Plugin => ({
 // Libraries in their own files: they change rarely, so returning visitors keep them cached
 export default defineConfig({
   plugins: [react(), inlineCss(), pages()],
+  preview: {
+    host: '127.0.0.1',
+    port: 43127,
+    allowedHosts: ['.trycloudflare.com', 'localhost', '127.0.0.1'],
+  },
   build: {
     target: 'es2020',
     rollupOptions: {

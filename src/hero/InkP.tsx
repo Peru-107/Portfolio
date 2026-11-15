@@ -6,7 +6,7 @@ import { gsap } from '../lib/motion'
 // The hero mark: a capital P that holds live ink. The mask is drawn from the
 // display face itself, so the letter is the site's own type, not a model.
 
-const PAPER: [number, number, number] = [0.914, 0.925, 0.937]
+const PAPER: [number, number, number] = [0.91, 0.918, 0.929]
 // Each ink is what it absorbs from paper. Mostly warm and bright (magma,
 // ember, hot yellow, deep red) with one charcoal, so the smoke around the
 // name reads as fire and ink together rather than grey

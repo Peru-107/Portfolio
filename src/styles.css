@@ -5,17 +5,22 @@
 @font-face { font-family: 'Courier Prime'; src: url('/fonts/courier-700.woff2') format('woff2'); font-weight: 700; font-display: swap; }
 
 :root {
-  --paper: #e9ecef;
-  --paper-2: #dee2e6;
-  --ash: #adb5bd;
-  --ink: #212529;
-  --ink-2: #343a40;
-  --ink-soft: #495057;
-  --magma: #f6440e;
-  /* Magma as text on paper: a touch deeper so large type passes contrast */
-  --magma-text: #e23d0b;
+  /* Studio field (Neo-Tokyo minimal) — flat, clean; not newspaper stock */
+  --paper: #e8eaed;
+  --paper-2: #d5dae0;
+  --ash: #9aa3ad;
+  --ink: #14181c;
+  --ink-2: #2a3036;
+  --ink-soft: #5a636c;
+  --magma: #ff4d12;
+  /* Magma as text on field: deeper for contrast, still vibrant */
+  --magma-text: #e8390a;
   --ember: #ffb238;
   --deep: #b3261e;
+  /* Night chapter (Contact) — BLUE HOUR sibling */
+  --night: #070a0d;
+  --night-2: #10151a;
+  --cream: #f3efe6;
 
   --display: 'Panchang', 'Arial Black', system-ui, sans-serif;
   --text: 'Supreme', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -28,18 +33,19 @@
   --fs-body: 19px;
   --fs-lead: clamp(21px, 1.7vw, 26px);
   --fs-h3: clamp(22px, 2vw, 30px);
-  --fs-h2: clamp(42px, 6.4vw, 124px);
+  --fs-h2: clamp(48px, 7vw, 136px);
   --lh-display: 1;
   --lh-heading: 1.2;
   --lh-body: 1.6;
 
-  /* Spacing: an 8pt scale, and one gap between sections */
+  /* Spacing: an 8pt scale, and ma (breathing room) between sections */
   --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px; --s-10: 128px;
-  --section: clamp(120px, 18vh, 200px);
-  --line: rgba(33, 37, 41, 0.14);
+  --section: clamp(140px, 22vh, 240px);
+  --line: rgba(20, 24, 28, 0.12);
 
-  --gutter: clamp(16px, 3.2vw, 48px);
+  --gutter: clamp(18px, 3.6vw, 56px);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ink-presence: 0.35;
   color-scheme: light;
 }
 
@@ -53,7 +59,11 @@ html.lenis, html.lenis body { height: auto; }
 
 body {
   margin: 0;
-  background: var(--paper);
+  /* Soft studio wash — compositor-cheap gradient, not grain */
+  background:
+    radial-gradient(120% 80% at 12% -10%, rgba(255, 77, 18, 0.06), transparent 42%),
+    radial-gradient(90% 60% at 100% 8%, rgba(27, 82, 108, 0.05), transparent 45%),
+    var(--paper);
   color: var(--ink);
   font-family: var(--text);
   font-size: var(--fs-body);
@@ -153,13 +163,13 @@ button { font: inherit; color: inherit; }
 
 /* Work */
 
-/* Project grounds: each project sits on a field taken from its own palette */
-[data-tone='clay'] { --ground: linear-gradient(150deg, #efe3cf, #d8a066); }
-[data-tone='ember'] { --ground: linear-gradient(150deg, #fbf3e4, #f6cf5c); }
-[data-tone='pine'] { --ground: linear-gradient(150deg, #e4e6dc, #8fa592); }
-[data-tone='night'] { --ground: linear-gradient(150deg, #2c4a52, #0f1c22); }
-[data-tone='paper'] { --ground: linear-gradient(150deg, #f4f2ec, #ff8a3d); }
-[data-tone='ink'] { --ground: linear-gradient(150deg, #343a40, #16191c); }
+/* Project grounds: vibrant Neo-Tokyo fields from each project's palette */
+[data-tone='clay'] { --ground: linear-gradient(150deg, #f3e6d4, #e08a4a); }
+[data-tone='ember'] { --ground: linear-gradient(150deg, #fff6e4, #ffb52e); }
+[data-tone='pine'] { --ground: linear-gradient(150deg, #e7ebe3, #6f9a7a); }
+[data-tone='night'] { --ground: linear-gradient(150deg, #1b526c, #070a0d); }
+[data-tone='paper'] { --ground: linear-gradient(150deg, #f7f2ea, #ff4d12); }
+[data-tone='ink'] { --ground: linear-gradient(150deg, #2a3036, #070a0d); }
 .case__stage { background: var(--ground, var(--paper-2)); }
 
 /* Media frames */
@@ -178,8 +188,8 @@ button { font: inherit; color: inherit; }
 .media--stack img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 0; box-shadow: 0 1px 2px rgba(33, 37, 41, 0.1), 0 30px 60px -28px rgba(33, 37, 41, 0.42); transform: translate(calc((var(--i) - 1) * 26%), calc((1 - var(--i)) * 3%)) rotate(calc((var(--i) - 1) * 7deg)); transition: transform 0.6s var(--ease-out); }
 
 /* Experience */
-.xp { padding: clamp(110px, 18vh, 200px) var(--gutter); border-top: 1px solid var(--line); }
-.xp__title { font-family: var(--display); font-weight: 800; font-size: var(--fs-h2); line-height: 0.95; letter-spacing: -0.022em; }
+.xp { padding: var(--section) var(--gutter); border-top: 1px solid var(--line); }
+.xp__title { font-family: var(--display); font-weight: 800; font-size: var(--fs-h2); line-height: 0.92; letter-spacing: -0.028em; }
 .xp__jobs { margin-top: clamp(48px, 8vh, 80px); }
 .xp__job { position: relative; }
 .xp__head { font: inherit; }
@@ -207,38 +217,49 @@ button { font: inherit; color: inherit; }
 .xp__list { display: grid; gap: 10px; }
 .xp__also { display: grid; gap: 24px; }
 
-/* About */
+/* About — ma + poster lead */
 .about {
-  padding: clamp(110px, 18vh, 200px) var(--gutter);
+  padding: var(--section) var(--gutter);
   display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 var(--gutter);
   border-top: 1px solid var(--line);
 }
-.about__title { grid-column: 1 / span 3; font-size: var(--fs-ui); font-weight: 600; color: var(--ink-soft); letter-spacing: 0.02em; padding-top: 0.7em; }
-.about__lead { grid-column: 4 / span 9; font-family: var(--display); font-weight: 500; font-size: clamp(26px, 3.1vw, 50px); line-height: 1.16; letter-spacing: -0.012em; }
-.about__rest { grid-column: 4 / span 6; margin-top: clamp(28px, 4vh, 44px); font-size: var(--fs-body); color: var(--ink-2); max-width: 52ch; line-height: 1.65; }
-.about__tools { grid-column: 4 / span 9; margin-top: clamp(56px, 9vh, 100px); padding-top: clamp(28px, 4vh, 40px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px 40px; }
-.about__group h3 { font-size: var(--fs-ui); font-weight: 600; color: var(--ink-soft); margin-bottom: 16px; letter-spacing: 0.02em; }
+.about__title { grid-column: 1 / span 3; font-size: var(--fs-caption); font-weight: 600; color: var(--ink-soft); letter-spacing: 0.14em; text-transform: uppercase; padding-top: 0.9em; }
+.about__lead { grid-column: 4 / span 9; font-family: var(--display); font-weight: 500; font-size: clamp(28px, 3.4vw, 56px); line-height: 1.14; letter-spacing: -0.018em; }
+.about__rest { grid-column: 4 / span 6; margin-top: clamp(36px, 5vh, 56px); font-size: var(--fs-body); color: var(--ink-2); max-width: 52ch; line-height: 1.65; }
+.about__tools { grid-column: 4 / span 9; margin-top: clamp(72px, 11vh, 120px); padding-top: clamp(32px, 5vh, 48px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px 40px; }
+.about__group h3 { font-size: var(--fs-caption); font-weight: 600; color: var(--ink-soft); margin-bottom: 16px; letter-spacing: 0.12em; text-transform: uppercase; }
 .about__group li { font-size: var(--fs-body); font-weight: 500; padding: 5px 0; }
 
-/* Contact — typographic crown: quiet eyebrow, supporting question, email as hero */
-.contact { background: var(--ink); color: var(--paper); padding: clamp(110px, 18vh, 200px) var(--gutter) 28px; }
-.contact__head { max-width: 28ch; }
-.contact__title { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 3.6vw, 64px); line-height: 1.06; letter-spacing: -0.018em; }
+/* Contact — Neo-Tokyo night / BLUE HOUR close */
+.contact {
+  background:
+    radial-gradient(80% 60% at 80% 0%, rgba(255, 77, 18, 0.16), transparent 55%),
+    radial-gradient(70% 50% at 10% 100%, rgba(27, 82, 108, 0.35), transparent 50%),
+    linear-gradient(180deg, var(--night-2), var(--night));
+  color: var(--cream);
+  padding: var(--section) var(--gutter) 28px;
+}
+.contact__head { max-width: 30ch; }
+.contact__eyebrow {
+  font-size: var(--fs-caption); font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(243, 239, 230, 0.42); margin-bottom: 18px;
+}
+.contact__title { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 4vw, 72px); line-height: 1.04; letter-spacing: -0.022em; }
 .contact__title .accent { color: var(--magma); }
-.contact__note { margin-top: 14px; font-size: var(--fs-ui); font-weight: 500; color: rgba(233, 236, 239, 0.55); letter-spacing: 0.01em; }
+.contact__note { margin-top: 16px; font-size: var(--fs-ui); font-weight: 500; color: rgba(243, 239, 230, 0.52); letter-spacing: 0.02em; }
 .contact__mail { margin-top: clamp(36px, 6vh, 64px); }
 /* Sized by script to fill the width; letters ink in magma from the left on hover */
 .contact__email { display: inline-block; white-space: nowrap; font-family: var(--display); font-weight: 800; line-height: 1; letter-spacing: -0.02em;
-  background: linear-gradient(90deg, var(--magma) 50%, var(--paper) 50%) 100% 0 / 200% 100% no-repeat;
+  background: linear-gradient(90deg, var(--magma) 50%, var(--cream) 50%) 100% 0 / 200% 100% no-repeat;
   -webkit-background-clip: text; background-clip: text; color: transparent; transition: background-position 0.6s var(--ease-out); }
 .contact__email:hover, .contact__email:focus-visible { background-position: 0 0; }
 @media (hover: none) { .contact__mail[data-in] .contact__email { background-position: 0 0; transition-duration: 0.6s; transition-delay: 0.1s; } }
 .contact__line { display: inline; }
 @media (max-width: 759px) { .contact__line { display: block; } }
-.contact__links { margin-top: clamp(36px, 6vh, 64px); padding-top: clamp(22px, 3.5vh, 32px); border-top: 1px solid rgba(233, 236, 239, 0.14); display: flex; flex-wrap: wrap; gap: 8px 32px; font-size: var(--fs-ui); }
+.contact__links { margin-top: clamp(36px, 6vh, 64px); padding-top: clamp(22px, 3.5vh, 32px); border-top: 1px solid rgba(243, 239, 230, 0.14); display: flex; flex-wrap: wrap; gap: 8px 32px; font-size: var(--fs-ui); }
 .contact__links button { border: 0; background-color: transparent; color: inherit; font: inherit; padding: 0; cursor: pointer; }
-.footer { position: relative; margin-top: clamp(100px, 16vh, 180px); padding-top: 22px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; font-size: var(--fs-caption); color: rgba(233, 236, 239, 0.6); }
-.footer a:hover { color: var(--paper); }
+.footer { position: relative; margin-top: clamp(100px, 16vh, 180px); padding-top: 22px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; font-size: var(--fs-caption); color: rgba(243, 239, 230, 0.55); }
+.footer a:hover { color: var(--cream); }
 
 /* Case study */
 .case { padding: 120px var(--gutter) 0; }
@@ -384,14 +405,26 @@ button { font: inherit; color: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* ---------- Hero: only the name in ink ---------- */
-.hero { position: relative; height: 100svh; min-height: 560px; overflow: hidden; background: var(--paper); }
+.hero {
+  position: relative; height: 100svh; min-height: 560px; overflow: hidden;
+  background: var(--paper);
+}
+/* Light→bold ink presence: soft magma bloom (opacity only — cheap composite) */
+.hero__bloom {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(55% 50% at 50% 42%, rgba(255, 77, 18, 0.22), transparent 70%),
+    radial-gradient(90% 70% at 50% 100%, rgba(20, 24, 28, 0.12), transparent 60%);
+  opacity: var(--ink-presence, 0.35);
+  will-change: opacity;
+}
 /* GSAP's pin spacers hold the page's place while a section is pinned: paper, never a gap */
 .pin-wrap, .pin-wrap > .pin-spacer { background: var(--paper); }
 /* The name and its ink, moved as one piece while the screen is held */
-.hero__stage { position: absolute; inset: 0; display: grid; align-items: center; padding: 0 var(--gutter); transform-origin: 50% 0; will-change: transform; pointer-events: none; }
+.hero__stage { position: absolute; inset: 0; z-index: 2; display: grid; align-items: center; padding: 0 var(--gutter); transform-origin: 50% 0; will-change: transform; pointer-events: none; }
 .hero__mark { position: relative; height: clamp(90px, min(20vw, 30vh), 320px); pointer-events: none; translate: 0 calc(var(--lift, 0px) * -1); transition: translate 0.7s var(--ease-out); }
 /* What I do: slides in under the name, inside the same screen */
-.hero__pitch { position: absolute; left: var(--gutter); right: var(--gutter); bottom: clamp(28px, 6vh, 64px); display: grid; gap: clamp(28px, 5vh, 56px); pointer-events: none; }
+.hero__pitch { position: absolute; left: var(--gutter); right: var(--gutter); bottom: clamp(28px, 6vh, 64px); z-index: 2; display: grid; gap: clamp(28px, 5vh, 56px); pointer-events: none; }
 .hero__pitch a { pointer-events: auto; }
 
 /* ---------- Pitch: revealed as you scroll ---------- */
@@ -436,7 +469,7 @@ button { font: inherit; color: inherit; }
 /* ---------- Work: the stack that becomes a row ---------- */
 .w2 { position: relative; height: 100svh; min-height: 640px; overflow: hidden; padding: clamp(96px, 13vh, 130px) 0 0; }
 .w2__head { padding: 0 var(--gutter); display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
-.w2__title { font-family: var(--display); font-weight: 800; font-size: var(--fs-h2); line-height: 0.98; letter-spacing: -0.022em; }
+.w2__title { font-family: var(--display); font-weight: 800; font-size: var(--fs-h2); line-height: 0.92; letter-spacing: -0.028em; }
 
 /* One line beside the title that says what the deck is (wide screens only);
    the title keeps its one line and the lead takes what room is left */
@@ -449,8 +482,21 @@ button { font: inherit; color: inherit; }
 .w2__row { position: absolute; left: 0; top: clamp(220px, 32vh, 300px); height: min(46vh, 520px); width: 100%; perspective: 1600px; transform-style: preserve-3d; }
 /* Transform-only promotion; content-visibility lets off-screen cards skip paint while the row slides */
 .w2__card { position: absolute; left: 0; top: 0; height: 100%; aspect-ratio: 16 / 9; display: block; will-change: transform; content-visibility: auto; contain-intrinsic-size: auto min(46vh, 520px); backface-visibility: hidden; }
-.w2__media { width: 100%; height: 100%; border-radius: 0; overflow: hidden; background: var(--ink); box-shadow: 0 1px 2px rgba(33, 37, 41, 0.11), 0 34px 70px -34px rgba(33, 37, 41, 0.47); transform: translate3d(0, 0, 0); }
-.w2__media > .media, .w2__media > .media > img, .w2__media .media__video { width: 100%; height: 100%; max-height: none; border-radius: 0; box-shadow: none; border: 0; object-fit: cover; object-position: center top; }
+.w2__media {
+  width: 100%; height: 100%; border-radius: 0; overflow: hidden; background: var(--ink);
+  box-shadow: 0 1px 2px rgba(20, 24, 28, 0.1), 0 34px 70px -34px rgba(20, 24, 28, 0.42);
+  transform: translate3d(0, 0, 0) scale(1);
+  transition: transform 0.45s var(--ease-out);
+}
+.w2__card:is(:hover, :focus-visible, [data-on]) .w2__media { transform: translate3d(0, 0, 0) scale(1.025); }
+.w2__media > .media, .w2__media > .media > img, .w2__media .media__video {
+  width: 100%; height: 100%; max-height: none; border-radius: 0; box-shadow: none; border: 0;
+  object-fit: cover; object-position: center top;
+  transform: translate3d(0, 0, 0) scale(1.001);
+  transition: transform 0.55s var(--ease-out);
+}
+.w2__card:is(:hover, :focus-visible, [data-on]) .w2__media > .media > img,
+.w2__card:is(:hover, :focus-visible, [data-on]) .w2__media .media__video { transform: translate3d(0, 0, 0) scale(1.04); }
 .w2__card--teaser .teaser { min-height: 0; height: 100%; border-radius: 0; }
 .w2__cap { position: absolute; left: 0; top: calc(100% + 18px); display: grid; gap: 4px; }
 /* Spec strip: mono meta (role · year), hairline that inks magma on the active card */
@@ -649,7 +695,7 @@ a, button, input, textarea, [role='radio'] { touch-action: manipulation; -webkit
 
 [data-reveal='line'] { position: relative; }
 [data-reveal='line']::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--line); transform: scaleX(0); transform-origin: left; transition: transform 0.45s var(--ease-out); }
-.contact [data-reveal='line']::before { background: rgba(233, 236, 239, 0.16); }
+.contact [data-reveal='line']::before { background: rgba(243, 239, 230, 0.16); }
 [data-reveal='line'][data-in]::before { transform: none; }
 .xp__job:last-child::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--line); }
 
