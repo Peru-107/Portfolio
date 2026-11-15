@@ -143,7 +143,7 @@ export function Work() {
             {/* Phones held upright get tall cards; their images load only there */}
             {p.portrait && <div className="w2__media w2__media--portrait"><Media m={p.portrait} sizes={CARD} /></div>}
             <div className="w2__cap">
-              <p className="w2__kind">{p.kind}, {p.year}</p>
+              <p className="w2__kind"><span>{p.role}</span><span className="w2__sep" aria-hidden="true"> · </span><span>{p.year}</span></p>
               <p className="w2__name"><Roll>{p.title}</Roll></p>
             </div>
           </a>
@@ -160,7 +160,7 @@ export function Work() {
             </div>
           </div>
           <div className="w2__cap">
-            <p className="w2__kind">Research desk for Indian markets</p>
+            <p className="w2__kind"><span>Design and build</span><span className="w2__sep" aria-hidden="true"> · </span><span>Soon</span></p>
             <p className="w2__name">{site.teaser.title}</p>
           </div>
         </div>
