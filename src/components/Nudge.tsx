@@ -48,12 +48,15 @@ function blob(cx: number, cy: number, r: number, dir: number, stretch: number, r
   return pts
 }
 
-function splashAt(): Splash {
+// Coarse pointers / dense strokes get a lighter splash (fewer verts) so the
+// pad stays near 60fps while drawing; fine desktop keeps the full sumi-e look
+function splashAt(lite = false): Splash {
   const lean = rand(0, Math.PI * 2)
   const base = rand(3.5, 7)
+  const blotN = lite ? 22 : 40
   // The blot, uneven and thrown one way, with a few sharp tongues of ink
-  const blot = blob(0, 0, base, lean, rand(1.2, 1.8), 0.4, 40)
-  const tongues = Array.from({ length: 2 + Math.floor(Math.random() * 4) }, () => ({ a: lean + rand(-1.3, 1.3), l: rand(3, 14), w: rand(0.05, 0.16) }))
+  const blot = blob(0, 0, base, lean, rand(1.2, 1.8), 0.4, blotN)
+  const tongues = Array.from({ length: lite ? 2 : 2 + Math.floor(Math.random() * 4) }, () => ({ a: lean + rand(-1.3, 1.3), l: rand(3, 14), w: rand(0.05, 0.16) }))
   blot.forEach((p) => {
     const a = Math.atan2(p[1], p[0])
     let push = 0
@@ -66,7 +69,8 @@ function splashAt(): Splash {
     p[1] += (p[1] / len) * push
   })
   // Flicks: a slightly curved hairline from the blot to a ragged drop
-  const flicks = Array.from({ length: 1 + Math.floor(Math.random() * 3) }, () => {
+  const flickCount = lite ? 1 : 1 + Math.floor(Math.random() * 3)
+  const flicks = Array.from({ length: flickCount }, () => {
     const a = lean + rand(-0.9, 0.9)
     const from = base * rand(0.8, 1.2)
     const to = from + rand(14, 42)
@@ -83,14 +87,15 @@ function splashAt(): Splash {
       [c * mid - s * (bend - r * 0.35), s * mid + c * (bend - r * 0.35)],
       [c * from + s * 0.5, s * from - c * 0.5],
     ]
-    return { tail, drop: blob(c * to, s * to, r, a, rand(1.1, 1.7)) }
+    return { tail, drop: blob(c * to, s * to, r, a, rand(1.1, 1.7), 0.35, lite ? 12 : 18) }
   })
   // Spatter: drops of very different sizes, most close, a few flung far
-  const spatter = Array.from({ length: 6 + Math.floor(Math.random() * 9) }, () => {
+  const spatN = lite ? 4 + Math.floor(Math.random() * 4) : 6 + Math.floor(Math.random() * 9)
+  const spatter = Array.from({ length: spatN }, () => {
     const a = Math.random() < 0.75 ? lean + rand(-1.4, 1.4) : rand(0, Math.PI * 2)
     const d = base + Math.pow(Math.random(), 1.8) * 55
     const r = Math.max(0.5, rand(0.4, 2.6) * (1 - d / 90))
-    return blob(Math.cos(a) * d, Math.sin(a) * d, r, a, rand(1, 2.2), 0.3, 9)
+    return blob(Math.cos(a) * d, Math.sin(a) * d, r, a, rand(1, 2.2), 0.3, lite ? 7 : 9)
   })
   return { blot, flicks, spatter }
 }
@@ -125,6 +130,8 @@ export function Nudge() {
     let raf = 0
     let last: { x: number; y: number; t: number; w: number } | null = null
 
+    // Touch / dense ink: fewer path samples + lighter splash (no canvas shadowBlur)
+    const coarse = matchMedia('(hover: none)').matches
     const size = () => {
       c.width = Math.round(c.clientWidth * dpr)
       c.height = Math.round(c.clientHeight * dpr)
@@ -133,6 +140,24 @@ export function Nudge() {
     size()
     const ro = new ResizeObserver(size)
     ro.observe(c)
+
+    // Cheap halo: one expanded fill at low alpha instead of shadowBlur (GPU blur tax)
+    const fillNib = (path: { x: number; y: number; w: number }[], nx: number, ny: number, scale: number, rgba: string) => {
+      ctx.fillStyle = rgba
+      ctx.beginPath()
+      for (let i = 1; i < path.length; i++) {
+        const p0 = path[i - 1]!
+        const p1 = path[i]!
+        const h0 = 6.5 * p0.w * scale
+        const h1 = 6.5 * p1.w * scale
+        ctx.moveTo(p0.x + nx * h0, p0.y + ny * h0)
+        ctx.lineTo(p1.x + nx * h1, p1.y + ny * h1)
+        ctx.lineTo(p1.x - nx * h1, p1.y - ny * h1)
+        ctx.lineTo(p0.x - nx * h0, p0.y - ny * h0)
+        ctx.closePath()
+      }
+      ctx.fill('nonzero')
+    }
 
     const draw = () => {
       raf = 0
@@ -150,6 +175,9 @@ export function Nudge() {
       ctx.clearRect(0, 0, c.clientWidth, c.clientHeight)
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
+      // Dense pads drop the halo pass and use fewer curve samples so draw stays ≥60fps
+      const dense = dots.length > 200
+      const steps = coarse || dense ? 2 : 4
       // Like a calligraphy pen: a splash where the nib lands, then one crisp line
       // whose width follows the nib, with a glow that hugs it. It curves through the
       // midpoints of its points, so the whole line cools and fades together,
@@ -162,9 +190,6 @@ export function Nudge() {
         if (head.splash) {
           ctx.save()
           ctx.translate(head.x, head.y)
-          ctx.shadowColor = `rgba(${r}, ${g}, ${bl}, ${al * 0.85})`
-          ctx.shadowBlur = 8
-          ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
           const { blot, flicks, spatter } = head.splash
           // Every shape is traced through the midpoints of its corners, so edges are soft but never round
           const trace = (pts: Shape) => {
@@ -179,12 +204,24 @@ export function Nudge() {
             ctx.closePath()
             ctx.fill()
           }
-          trace(blot)
-          for (const f of flicks) {
-            trace(f.tail)
-            trace(f.drop)
+          const paintSplash = () => {
+            trace(blot)
+            for (const f of flicks) {
+              trace(f.tail)
+              trace(f.drop)
+            }
+            spatter.forEach(trace)
           }
-          spatter.forEach(trace)
+          // Soft halo via scale (no shadowBlur); skip when the pad is already dense
+          if (!dense) {
+            ctx.save()
+            ctx.scale(1.12, 1.12)
+            ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${al * 0.35})`
+            paintSplash()
+            ctx.restore()
+          }
+          ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
+          paintSplash()
           ctx.restore()
         }
         if (st.length < 2) continue
@@ -198,8 +235,8 @@ export function Nudge() {
           const ay = z ? (z.y + p0.y) / 2 : p0.y
           const bx = (p0.x + p1.x) / 2
           const by = (p0.y + p1.y) / 2
-          for (let k = 1; k <= 4; k++) {
-            const t = k / 4
+          for (let k = 1; k <= steps; k++) {
+            const t = k / steps
             const u = 1 - t
             path.push({ x: u * u * ax + 2 * u * t * p0.x + t * t * bx, y: u * u * ay + 2 * u * t * p0.y + t * t * by, w: p0.w + (p1.w - p0.w) * t })
           }
@@ -211,24 +248,8 @@ export function Nudge() {
         // cut on the angle, as with a real calligraphy pen. One fill, so nothing doubles
         const nx = Math.cos(NIB)
         const ny = Math.sin(NIB)
-        ctx.save()
-        ctx.shadowColor = `rgba(${r}, ${g}, ${bl}, ${al * 0.85})`
-        ctx.shadowBlur = 7
-        ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
-        ctx.beginPath()
-        for (let i = 1; i < path.length; i++) {
-          const p0 = path[i - 1]!
-          const p1 = path[i]!
-          const h0 = 6.5 * p0.w
-          const h1 = 6.5 * p1.w
-          ctx.moveTo(p0.x + nx * h0, p0.y + ny * h0)
-          ctx.lineTo(p1.x + nx * h1, p1.y + ny * h1)
-          ctx.lineTo(p1.x - nx * h1, p1.y - ny * h1)
-          ctx.lineTo(p0.x - nx * h0, p0.y - ny * h0)
-          ctx.closePath()
-        }
-        ctx.fill('nonzero')
-        ctx.restore()
+        if (!dense) fillNib(path, nx, ny, 1.35, `rgba(${r}, ${g}, ${bl}, ${al * 0.32})`)
+        fillNib(path, nx, ny, 1, `rgba(${r}, ${g}, ${bl}, ${al})`)
         // The hairline the nib's edge leaves, so the thinnest strokes never vanish
         ctx.strokeStyle = `rgba(${r}, ${g}, ${bl}, ${al})`
         ctx.lineWidth = 1.2
@@ -266,8 +287,8 @@ export function Nudge() {
       // as the ink runs short; eased so the stroke never jumps in weight
       const raw = Math.max(0.6, 1 - speed / 2600)
       const w = last && !start ? last.w * 0.7 + raw * 0.3 : raw
-      // Where the nib first touches, the ink splashes
-      const splash = start ? splashAt() : undefined
+      // Where the nib first touches, the ink splashes (lighter on coarse pointers)
+      const splash = start ? splashAt(coarse) : undefined
       dots.push({ x, y, t, w, start, splash })
       if (dots.length > 1600) dots.splice(0, dots.length - 1600)
       last = { x, y, t, w }
