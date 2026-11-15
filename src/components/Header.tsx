@@ -146,8 +146,6 @@ function SoundKey() {
   )
 }
 
-const mac = typeof navigator !== 'undefined' && /Mac|iP(hone|ad|od)/.test(navigator.platform || navigator.userAgent)
-
 export function Header() {
   const time = useClock()
   const dark = useOverDark()
@@ -189,12 +187,8 @@ export function Header() {
         <Magnetic><a href="/#experience" onClick={to('experience')}><Roll>Experience</Roll></a></Magnetic>
         <Magnetic><a href="/#contact" onClick={to('contact')}><Roll>Contact</Roll></a></Magnetic>
         <Magnetic><a href="/Perraz-Badhniwalla-CV.pdf" target="_blank" rel="noreferrer"><Roll>CV</Roll></a></Magnetic>
-        {/* The command menu's key; it opens on a click too */}
-        <button type="button" className="header__key" aria-label="Open the command menu" aria-haspopup="dialog" onClick={() => dispatchEvent(new Event(OPEN_PALETTE))}>
-          <kbd>{mac ? '⌘' : 'Ctrl'}</kbd><kbd>K</kbd>
-        </button>
         <SoundKey />
-        {/* Phones and tablets have no Ctrl/⌘ K: a small square opens the same menu */}
+        {/* Phones and tablets: a small square opens the command menu (desktop uses Ctrl/⌘ K) */}
         <button type="button" className="header__find" aria-label="Go anywhere on this site" aria-haspopup="dialog" onClick={() => dispatchEvent(new Event(OPEN_PALETTE))}>
           <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
             <circle cx="8.5" cy="8.5" r="5.75" fill="none" stroke="currentColor" strokeWidth="1.6" />
