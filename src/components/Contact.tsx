@@ -45,6 +45,7 @@ export function Contact() {
 
   return (
     <section id="contact" className="contact" aria-labelledby="contact-title">
+      <p className="contact__eyebrow" data-reveal="fade">Contact</p>
       <h2 id="contact-title" className="contact__title" data-reveal="rise"><span>Got an idea that <span className="accent">should exist?</span></span></h2>
       <div className="contact__mail" data-reveal="fade">
         <a ref={mail} href={`mailto:${site.email}`} className="contact__email" data-cursor="Write" aria-label={`Email ${site.email}`}>

@@ -33,12 +33,13 @@ export function Hero({ ready }: { ready: boolean }) {
       setInvite(false)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
-    // Nothing but the name at first; after three and a half seconds, a quiet invitation fades in
+    // Nothing but the name at first; after a short beat, a quiet invitation fades in
+    // (earlier than before so the ink affordance reads as intentional, not late)
     const t = window.setTimeout(() => {
       if (scrollY >= 40) return
       if (touch) setInvite(true)
       else if (!found) setHint('Write something, or scroll.')
-    }, 3500)
+    }, 2800)
     return () => {
       window.clearTimeout(t)
       window.removeEventListener('ink:played', onPlay)

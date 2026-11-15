@@ -20,7 +20,7 @@ const ITEMS: Item[] = [
 
 // A point on a stroke: where, when it was laid, and how wide the brush was there
 type Dot = { x: number; y: number; t: number; w: number; start: boolean; splash?: Splash }
-const LIFE = 5.2 // seconds from wet to gone
+const LIFE = 4.4 // seconds from wet to gone — snappier ember→magma dry-down
 const NIB = -Math.PI / 4 // a broad nib held at 45 degrees, as in calligraphy
 
 // The splash a nib leaves where it lands, sumi-e style: an uneven blot thrown
@@ -99,12 +99,13 @@ function splashAt(): Splash {
 // through ember to magma orange, which then fades away
 function inkAt(age: number): [number, number, number, number] {
   const k = Math.min(1, age)
-  const stops: [number, number, number][] = [[255, 228, 92], [255, 168, 48], [255, 92, 28]]
-  const f = Math.min(stops.length - 1.001, (k / 0.6) * (stops.length - 1))
+  // Yellow → ember → magma, then a clean fade (Kostetskyi-style stroke play)
+  const stops: [number, number, number][] = [[255, 228, 92], [255, 178, 56], [246, 68, 14]]
+  const f = Math.min(stops.length - 1.001, (k / 0.55) * (stops.length - 1))
   const i = Math.floor(f)
   const t = f - i
   const c = stops[i]!.map((v, j) => Math.round(v + (stops[i + 1]![j]! - v) * t)) as [number, number, number]
-  return [...c, k < 0.65 ? 1 : 1 - (k - 0.65) / 0.35]
+  return [...c, k < 0.58 ? 1 : 1 - (k - 0.58) / 0.42]
 }
 
 export function Nudge() {

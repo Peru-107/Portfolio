@@ -91,8 +91,9 @@ export function Case({ slug }: { slug: string }) {
     const el = peek.current
     const link = root.current?.querySelector<HTMLElement>('.case__next')
     if (!el || !link || !matchMedia('(hover: hover) and (pointer: fine)').matches) return
-    const x = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3.out' })
-    const y = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3.out' })
+    // Crisp settle (0.3–0.6s family): trails the pointer without lingering
+    const x = gsap.quickTo(el, 'x', { duration: 0.4, ease: 'power3.out' })
+    const y = gsap.quickTo(el, 'y', { duration: 0.4, ease: 'power3.out' })
     // Above and to the right of the pointer, so the project's name stays readable; kept on screen
     const at = (e: PointerEvent) => {
       const above = e.clientY - el.offsetHeight - 32
@@ -250,7 +251,7 @@ export function Case({ slug }: { slug: string }) {
           {/* Stays beside the story while it scrolls: what this is, and where you are in it */}
           <aside className="case__rail" aria-label="On this page">
             <p className="case__rail-name">{p.title}</p>
-            <p className="case__rail-kind">{p.kind}, {p.year}</p>
+            <p className="case__rail-kind"><span>{p.role}</span><span aria-hidden="true"> · </span><span>{p.year}</span></p>
             <ol className="case__rail-parts">
               {parts.map((s) => (
                 <li key={s.id}>
