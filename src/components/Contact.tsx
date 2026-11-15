@@ -48,6 +48,7 @@ export function Contact() {
   return (
     <section id="contact" className="contact" aria-labelledby="contact-title">
       <header className="contact__head">
+        <p className="contact__eyebrow" data-reveal="fade">Contact</p>
         <h2 id="contact-title" className="contact__title" data-reveal="rise">
           <span>{before} <span className="accent">{accent}</span></span>
         </h2>

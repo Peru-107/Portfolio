@@ -26,7 +26,8 @@ export function startScroll() {
   }
   if (lenis || reduced()) return
   // A steady lerp rather than a fixed duration: every wheel step, large or small, glides the same way
-  lenis = new Lenis({ lerp: 0.085, smoothWheel: true, wheelMultiplier: 0.9 })
+  // Slightly softer lerp = Neo-Tokyo luxury glide without feeling sluggish
+  lenis = new Lenis({ lerp: 0.072, smoothWheel: true, wheelMultiplier: 0.88 })
   lenis.on('scroll', ScrollTrigger.update)
   // First on the clock, ahead of anything added earlier (the hero's ink is set
   // up before this runs): each frame the scroll moves, the scroll animations

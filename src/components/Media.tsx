@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import type { Media as M } from '../content'
 
 // Each image's full width, and the smaller copies that exist beside it
@@ -13,13 +13,71 @@ const SIZES: Record<string, [number, number[]]> = {
   'stack-nextup': [1600, [800]], 'stack-tv': [1600, [800]],
   'tv-apps': [1280, [800]], 'tv-focus': [1280, [800]], 'tv-home': [1280, [800]], 'tv-panel': [1280, [800]],
 }
+
+/** Flip on once `public/media/*.avif` siblings exist (see scripts/gen-avif.mjs). */
+const AVIF = true
+
 function responsive(src: string, sizes = '(max-width: 759px) 92vw, 60vw') {
   const name = src.match(/\/media\/([\w-]+)\.webp$/)?.[1]
   const known = name ? SIZES[name] : undefined
-  if (!known) return { src }
+  if (!known) {
+    return {
+      src,
+      sizes,
+      avifSrcSet: AVIF ? src.replace(/\.webp$/, '.avif') : undefined,
+    }
+  }
   const [full, smaller] = known
-  const set = [...smaller.map((w) => `${src.replace(/\.webp$/, `-${w}.webp`)} ${w}w`), `${src} ${full}w`]
-  return { src, srcSet: set.join(', '), sizes }
+  const webp = [...smaller.map((w) => `${src.replace(/\.webp$/, `-${w}.webp`)} ${w}w`), `${src} ${full}w`]
+  const avif = AVIF
+    ? [...smaller.map((w) => `${src.replace(/\.webp$/, `-${w}.avif`)} ${w}w`), `${src.replace(/\.webp$/, '.avif')} ${full}w`]
+    : undefined
+  return { src, srcSet: webp.join(', '), avifSrcSet: avif?.join(', '), sizes }
+}
+
+function Picture({
+  src,
+  srcSet,
+  avifSrcSet,
+  sizes,
+  alt,
+  loading,
+  className,
+  style,
+  'aria-hidden': ariaHidden,
+}: {
+  src: string
+  srcSet?: string
+  avifSrcSet?: string
+  sizes?: string
+  alt: string
+  loading: 'eager' | 'lazy'
+  className?: string
+  style?: CSSProperties
+  'aria-hidden'?: boolean | 'true' | 'false'
+}) {
+  if (!avifSrcSet) {
+    return (
+      <img
+        className={className}
+        src={src}
+        srcSet={srcSet}
+        sizes={sizes}
+        alt={alt}
+        loading={loading}
+        decoding="async"
+        style={style}
+        aria-hidden={ariaHidden}
+      />
+    )
+  }
+  return (
+    <picture>
+      <source type="image/avif" srcSet={avifSrcSet} sizes={sizes} />
+      {srcSet && <source type="image/webp" srcSet={srcSet} sizes={sizes} />}
+      <img className={className} src={src} alt={alt} loading={loading} decoding="async" style={style} aria-hidden={ariaHidden} />
+    </picture>
+  )
 }
 
 // Video plays only while on screen, so six projects never decode at once
@@ -55,10 +113,11 @@ function Video({ m, sizes }: { m: Extract<M, { type: 'video' }>; sizes?: string 
   }, [])
   // WebM (VP9) is about a quarter smaller; MP4 stays as the fallback. Nothing
   // downloads until the video is about to play.
+  const poster = responsive(m.poster, sizes)
   return (
     <>
       {/* The still the card shows until the film has a frame (used in the work deck) */}
-      <img className="media__poster" {...responsive(m.poster, sizes)} alt="" aria-hidden="true" loading="lazy" decoding="async" />
+      <Picture className="media__poster" {...poster} alt="" aria-hidden="true" loading="lazy" />
       <video ref={v} className="media__video" poster={m.poster} muted loop playsInline preload="none" aria-label={m.alt}>
         {m.src.endsWith('.mp4') && <source src={m.src.replace(/\.mp4$/, '.webm')} type="video/webm" />}
         <source src={m.src} type="video/mp4" />
@@ -73,7 +132,14 @@ export function Media({ m, priority, sizes }: { m: M; priority?: boolean; sizes?
   if (m.type === 'row') {
     return (
       <div className="media media--row" data-shape={m.shape} style={{ background: m.bg }} role="img" aria-label={m.alt}>
-        {m.srcs.map((s) => <img key={s} {...responsive(s, m.shape === 'screens' ? '(max-width: 759px) 60vw, 30vw' : '(max-width: 759px) 30vw, 14vw')} alt="" loading={load} decoding="async" />)}
+        {m.srcs.map((s) => (
+          <Picture
+            key={s}
+            {...responsive(s, m.shape === 'screens' ? '(max-width: 759px) 60vw, 30vw' : '(max-width: 759px) 30vw, 14vw')}
+            alt=""
+            loading={load}
+          />
+        ))}
       </div>
     )
   }
@@ -81,7 +147,7 @@ export function Media({ m, priority, sizes }: { m: M; priority?: boolean; sizes?
     return (
       <div className="media media--stack" role="img" aria-label={m.alt}>
         {m.srcs.map((s, i) => (
-          <img key={s} {...responsive(s, sizes)} alt="" loading={load} decoding="async" style={{ ['--i' as string]: i }} />
+          <Picture key={s} {...responsive(s, sizes)} alt="" loading={load} style={{ ['--i' as string]: i }} />
         ))}
       </div>
     )
@@ -90,7 +156,7 @@ export function Media({ m, priority, sizes }: { m: M; priority?: boolean; sizes?
   return (
     <figure className="media" data-frame={frame}>
       {frame === 'browser' && <span className="media__bar" aria-hidden="true"><i /><i /><i /></span>}
-      {m.type === 'video' ? <Video m={m} sizes={sizes} /> : <img {...responsive(m.src, sizes)} alt={m.alt} loading={load} decoding="async" />}
+      {m.type === 'video' ? <Video m={m} sizes={sizes} /> : <Picture {...responsive(m.src, sizes)} alt={m.alt} loading={load} />}
     </figure>
   )
 }

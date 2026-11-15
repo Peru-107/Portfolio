@@ -1,43 +1,47 @@
 # Design language
 
-Decided with Perraz, 2 November 2026; brought up to date with the code on 14 November 2026
-(branch `grok-revamp`). This is the reference for every change to the site.
+Decided with Perraz, 2 November 2026; Neo-Tokyo rehaul on 15 November 2026
+(branch `cursor/neo-tokyo-ui-rehaul-4a61`). This is the reference for every change to the site.
 
 ## The feeling
 
-"This person is a craftsman." Quiet precision: every detail considered, nothing loud.
+"This person is a craftsman — artistic, beautiful, vibrant." Japanese graphic calm with
+early-20s night-out polish: fun, smooth, swanky, and minimal. Air (**間 / ma**) is confidence;
+magma is a rare wink; the WebGL ink is the opening artwork.
 
 ## Direction
 
-- **Editorial leads.** Typography and space do the talking. The WebGL ink is the
-  hero's opening statement; product-sleek precision shapes the interactions;
-  the typewriter, postcards and the ink pad carry the analog side.
+- **Neo-Tokyo minimal leads.** Typography, space, and one molten material do the talking.
+  Quiet chrome, loud craft. Not newspaper paper craft. Not SaaS. Not kawaii sticker chaos.
 - **Ink stays in the hero** (and returns once, as the ink pad at the foot of Contact).
-  Between them the page is ink on paper: calm and typographic.
+  Between them the page is a clean studio field: calm, typographic, vibrant only where it earns it.
+- **Hero presence** goes light → bold across the first scroll, then yields so Work inherits calm air.
 - **Phones get the same story,** driven by scroll and touch instead of hover and cursor.
 - **First person** in all copy ("I design…", "How I decided").
+- **≥60fps site-wide** is a hard floor — dropped frames are failures to fix.
 
 ## Type
 
 - Panchang for statements, Supreme for reading and interface, Courier Prime only for
-  typed moments (the typewriter, dev-only TODO notes).
-- Big jumps: section titles near poster size, body small and airy.
+  typed moments (the typewriter, mono `role · year` meta, dev-only TODO notes).
+- Big jumps: section titles near poster size, body small and airy. Slightly tight display tracking.
 
 ## Colour
 
-- Paper `#e9ecef` (paper-2 `#dee2e6`), ink `#212529` (ink-2 `#343a40`, ink-soft `#495057`).
-- Magma `#f6440e` is a rare signal: one key word per section, the live dot, the typewriter
-  caret, the active side-index line, the progress line. As text on paper it is
+- Studio field `#e9ecef` (field-2 `#dee2e6`) — flat, clean; not sold as newspaper stock.
+- Ink `#212529` (ink-2 `#343a40`, ink-soft `#495057`).
+- Magma `#f6440e` is a rare **vibrant** signal: one key word per section, the live dot, the
+  typewriter caret, the active side-index line, the progress line. As text on the field it is
   `--magma-text: #e23d0b`; on ink it stays `#f6440e`. Ember `#ffb238` and deep `#b3261e`
   appear only inside the ink and the ink pad's strokes.
-- Clean flat colour, no paper grain.
-- One dark section: Contact, the closing chapter. (Small ink-filled cards are allowed:
+- Clean flat colour, no paper grain, no purple SaaS glow.
+- One dark section: Contact — Neo-Tokyo night close. (Small ink-filled cards are allowed:
   the Aegis folder and the "After" card in a case study's Before and after.)
 
 ## Motion
 
-- Crisp and quick: 0.3 to 0.6s, ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`, `power3.out` /
-  `expo.out`). Nothing lingers.
+- Smooth luxury: 0.3 to 0.6s, ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`, `power3.out` /
+  `expo.out`). Nothing lingers. Lenis glide between spectacles.
 - Reveals, each played once as it scrolls into view:
   - headings rise from behind a mask
   - hairline rules draw across
@@ -45,12 +49,14 @@ Decided with Perraz, 2 November 2026; brought up to date with the code on 14 Nov
   - images unveil with a clean edge
   - small headings get the highlighter
 - No section labels or numbering; titles alone.
-- Loader, about two seconds, once per visit: a sheet of ink with the name in paper exactly
-  where the live ink will draw it. The name comes out of a blur, a 000–100 counter runs and a
+- Loader, about two seconds, once per visit: a sheet of ink with the name in the field colour
+  exactly where the live ink will draw it. The name comes out of a blur, a 000–100 counter runs and a
   thin magma line fills along the bottom; then the sheet folds down into that line and the
   live ink underneath is already showing the name, ready to flow.
 - Reduced motion: no loader, no pins (Work is a plain list), no reveals, and the ink is a
   single settled frame.
+- Playful personality lives in **DOM** (cursor, magnetics, letter-roll, deal deck, typewriter,
+  ink pad) — not in a second site-wide WebGL guest.
 
 ## The ink
 
@@ -62,15 +68,15 @@ Decided with Perraz, 2 November 2026; brought up to date with the code on 14 Nov
   GPU or after sustained long frames it settles into a still frame that still follows the
   scroll glide. Without WebGL2 it falls back to a Panchang "P".
 - Smoothness rules: the ink steps on GSAP's ticker (one clock, after Lenis has scrolled and
-  ScrollTrigger has placed the word), its canvas has an alpha channel over paper so an undrawn
+  ScrollTrigger has placed the word), its canvas has an alpha channel over the studio field so an undrawn
   frame is never black, pixel ratio is capped at 1.5, and a card's film is shown only once it
-  has a real frame (its still sits underneath until then).
+  has a real frame (its still sits underneath until then). Adaptive step-down defends ~16.7ms.
 
 ## Interaction
 
 - Links: the letter roll. Each letter rises in turn and reveals an orange copy of itself; no
   underline, no colour inversion. Touch devices keep a thin orange underline on tappable links.
-  Buttons invert ink and paper.
+  Buttons invert ink and field.
 - Square corners everywhere: cards, buttons, fields, focus rings, tags. Only device frames
   (phone, TV) keep hardware rounding.
 - Highlighter: small headings carry a solid magma mark swept in from the left.
@@ -88,7 +94,7 @@ Decided with Perraz, 2 November 2026; brought up to date with the code on 14 Nov
 - Phones: press feedback (a slight compress and spring back), haptic ticks
   (work card snaps, button presses, typewriter keys, opening an Experience row),
   and a work deck that snaps card to card under the thumb.
-- The hero hint ("Write something, or scroll.") fades in after 3.5 seconds if nobody has
+- The hero hint ("Write something, or scroll.") fades in after ~2.8 seconds if nobody has
   found the typewriter; on phones the "Write something" button does instead.
 
 ## Sections
@@ -96,7 +102,8 @@ Decided with Perraz, 2 November 2026; brought up to date with the code on 14 Nov
 - **Work:** "Things I've built." with one lead line beside it on wide screens
   ("Five products. Designed, coded and shipped by one person."). The deal-and-slide deck is the
   centrepiece: square cards that resolve from halftone dots into their picture and rise a little
-  to meet the pointer; tall 4:5 covers on phones. Cards still in the stack are inert until dealt
+  to meet the pointer; tall 4:5 covers on phones. Soft cover hover is CSS/GSAP only — no second
+  WebGL. Cards still in the stack are inert until dealt
   (keyboard focus on the front card deals the deck). The fifth card, Aegis, is a sealed folder:
   the front lifts and a redacted page shows, but it never opens.
 - **Opening a project:** the card expands into the case-study page.
@@ -111,7 +118,7 @@ Decided with Perraz, 2 November 2026; brought up to date with the code on 14 Nov
 - **About:** one big statement inking in word by word with scroll; every word is readable
   before it inks (never fainter than 0.52, key words 0.85), then facts and skills.
 - **Experience:** compact rows that expand to show the details.
-- **Contact:** big, quiet and typographic on ink. The email is the hero of the
+- **Contact:** big, quiet and typographic on ink — Neo-Tokyo night. The email is the hero of the
   section, and its letters ink in on hover or tap. Minimal links below. At the foot, the ink
   pad: "Let's build." Tap it on, then press and drag to draw; strokes go down yellow, warm
   through ember to magma and fade; the things I've made sit on top and shy away from the pointer.
@@ -123,3 +130,11 @@ Decided with Perraz, 2 November 2026; brought up to date with the code on 14 Nov
 Case-study copy uses only facts Perraz has stated. Anything not yet known is written as a
 `TODO('question')` in `src/content.ts`: it shows as a "TODO for Perraz" note in development
 and is never rendered in production.
+
+## What not to do
+
+- Paper-newspaper / broadsheet cosplay as the brand metaphor.
+- Site-wide WebGL, Three.js hero replacement, or per-card canvases.
+- Purple–indigo SaaS glow, glassmorphism stacks, paper grain overlays.
+- Teen/kawaii maximalism, emoji walls, pill clusters, hero stat strips.
+- Accepting frame times below 60fps as a visual tradeoff.

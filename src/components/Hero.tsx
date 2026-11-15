@@ -63,7 +63,11 @@ export function Hero({ ready }: { ready: boolean }) {
         defaults: { ease: 'none' },
         scrollTrigger: { trigger: root.current, start: 'top top', end: '+=200%', pin: true, scrub: true, invalidateOnRefresh: true },
       })
-      tl.to(stage.current, { y: () => lift(), scale, duration: 1 })
+      // Light → bold ink presence across the first scroll, then ease off as pitch arrives
+      gsap.set(root.current, { '--ink-presence': 0.28 })
+      tl.to(root.current, { '--ink-presence': 1, duration: 0.45 }, 0)
+        .to(root.current, { '--ink-presence': 0.42, duration: 0.55 }, 0.45)
+        .to(stage.current, { y: () => lift(), scale, duration: 1 }, 0)
         .to('.tw', { autoAlpha: 0, y: -40, duration: 0.3 }, 0)
         .from('.pitch__line > span', { yPercent: 110, duration: 0.6, stagger: 0.12, ease: 'power3.out' }, 0.35)
         .from('.pitch__meta > *', { autoAlpha: 0, y: 24, duration: 0.5, stagger: 0.08, ease: 'power3.out' }, 0.75)
@@ -78,6 +82,7 @@ export function Hero({ ready }: { ready: boolean }) {
     <section ref={root} id="top" className="hero">
       {/* The ink fills the whole screen and never moves; only the word's shape inside it does */}
       <InkP play={ready} text={site.name} layout="wordmark" anchor={mark} track />
+      <div className="hero__bloom" aria-hidden="true" />
       <div ref={stage} className="hero__stage">
         <div ref={mark} className="hero__mark" aria-hidden="true" />
       </div>
