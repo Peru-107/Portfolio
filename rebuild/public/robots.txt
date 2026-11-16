@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /ink-story
+
+Sitemap: https://perraz-badhniwalla.vercel.app/sitemap.xml

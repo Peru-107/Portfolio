@@ -1,0 +1,109 @@
+import { useLayoutEffect, useRef, useState } from 'react'
+import { site } from '../content'
+import { Magnetic } from './Magnetic'
+import { scrollToId } from '../lib/motion'
+import { tick } from '../lib/haptic'
+import { Roll } from './Roll'
+import { Nudge } from './Nudge'
+
+export function Contact() {
+  const [copied, setCopied] = useState(false)
+  const mail = useRef<HTMLAnchorElement>(null)
+  const [user, domain] = site.email.split('@') as [string, string]
+
+  useLayoutEffect(() => {
+    const a = mail.current!
+    const fit = () => {
+      a.style.fontSize = '100px'
+      const widest = a.getBoundingClientRect().width
+      const room = a.parentElement!.clientWidth
+      a.style.fontSize = `${Math.floor((100 * room) / widest) - 1}px`
+    }
+    fit()
+    document.fonts.ready.then(fit)
+    const ro = new ResizeObserver(fit)
+    ro.observe(a.parentElement!)
+    return () => ro.disconnect()
+  }, [])
+
+  const copy = async () => {
+    tick()
+    try {
+      await navigator.clipboard.writeText(site.email)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      location.href = `mailto:${site.email}`
+    }
+  }
+
+  const { before, accent } = site.contactAsk
+
+  return (
+    <section id="contact" className="contact" aria-labelledby="contact-title">
+      <header className="contact__head">
+        <p className="contact__eyebrow" data-reveal="fade">
+          夜 · Contact
+        </p>
+        <h2 id="contact-title" className="contact__title" data-reveal="rise">
+          <span>
+            {before} <span className="accent">{accent}</span>
+          </span>
+        </h2>
+        <p className="contact__note" data-reveal="fade">
+          {site.contactNote}
+        </p>
+      </header>
+      <div className="contact__mail" data-reveal="fade">
+        <a
+          ref={mail}
+          href={`mailto:${site.email}`}
+          className="contact__email"
+          data-cursor="Write"
+          aria-label={`Email ${site.email}`}
+        >
+          <span className="contact__line" aria-hidden="true">
+            {user}
+          </span>
+          <span className="contact__line" aria-hidden="true">
+            @{domain}
+          </span>
+        </a>
+      </div>
+      <ul className="contact__links" data-reveal="fade">
+        <li>
+          <button type="button" className="u" onClick={copy}>
+            <Roll key={copied ? 'c' : 'e'}>{copied ? 'Copied' : 'Copy email'}</Roll>
+          </button>
+          <span role="status" className="sr-only">
+            {copied ? 'Email address copied' : ''}
+          </span>
+        </li>
+        <li>
+          <a className="u" href="/Perraz-Badhniwalla-CV.pdf" download onClick={() => tick()}>
+            <Roll>Download CV</Roll>
+          </a>
+        </li>
+        {site.links.map((l) => (
+          <li key={l.label}>
+            <Magnetic>
+              <a className="u" href={l.href} target="_blank" rel="noreferrer">
+                <Roll>{l.label}</Roll>
+              </a>
+            </Magnetic>
+          </li>
+        ))}
+      </ul>
+      <Nudge />
+      <footer className="footer" data-reveal="line">
+        <p>
+          © {new Date().getFullYear()} {site.fullName}
+        </p>
+        <p>Rebuild v2 · WebGL ink, GSAP, Lenis</p>
+        <a className="u" href="#top" onClick={(e) => (e.preventDefault(), scrollToId('top'))}>
+          <Roll>Back to top</Roll>
+        </a>
+      </footer>
+    </section>
+  )
+}
