@@ -1,0 +1,80 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { projects } from './src/content'
+
+const SITE = 'https://perraz-badhniwalla.vercel.app'
+
+const pages = (): Plugin => ({
+  name: 'project-pages',
+  apply: 'build',
+  closeBundle() {
+    const dist = resolve(__dirname, 'dist')
+    const home = readFileSync(resolve(dist, 'index.html'), 'utf8')
+    const attr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    for (const p of projects) {
+      const url = `${SITE}/work/${p.slug}`
+      const title = `${p.title}: ${p.kind} — Perraz Badhniwalla`
+      const html = home
+        .replace(/<title>[^<]*<\/title>/, `<title>${attr(title)}</title>`)
+        .replace(/(<meta name="description" content=")[^"]*/, `$1${attr(p.summary)}`)
+        .replace(/(<meta property="og:title" content=")[^"]*/, `$1${attr(title)}`)
+        .replace(/(<meta property="og:description" content=")[^"]*/, `$1${attr(p.summary)}`)
+        .replace(/(<meta property="og:url" content=")[^"]*/, `$1${url}`)
+        .replace(/(<meta property="og:image" content=")[^"]*/, `$1${SITE}/og/${p.slug}.png`)
+        .replace(/(<meta property="og:image:alt" content=")[^"]*/, `$1${attr(`${p.title}, ${p.kind}`)}`)
+        .replace(/(<link rel="canonical" href=")[^"]*/, `$1${url}`)
+      mkdirSync(resolve(dist, 'work', p.slug), { recursive: true })
+      writeFileSync(resolve(dist, 'work', p.slug, 'index.html'), html)
+    }
+    writeFileSync(
+      resolve(dist, '404.html'),
+      home
+        .replace(/<title>[^<]*<\/title>/, '<title>Not here — Perraz Badhniwalla</title>')
+        .replace(/\s*<link rel="canonical"[^>]*>/, '')
+        .replace('<meta charset="UTF-8" />', '<meta charset="UTF-8" />\n    <meta name="robots" content="noindex" />'),
+    )
+  },
+})
+
+const inlineCss = (): Plugin => ({
+  name: 'inline-css',
+  apply: 'build',
+  enforce: 'post',
+  generateBundle(_, bundle) {
+    const html = bundle['index.html']
+    const css = Object.values(bundle).find((a) => a.type === 'asset' && a.fileName.endsWith('.css'))
+    if (!html || html.type !== 'asset' || !css || css.type !== 'asset') return
+    const tag = new RegExp(`<link rel="stylesheet"[^>]*href="/${css.fileName}"[^>]*>`)
+    html.source = String(html.source).replace(tag, () => `<style>${css.source}</style>`)
+    delete bundle[css.fileName]
+  },
+})
+
+export default defineConfig({
+  plugins: [react(), inlineCss(), pages()],
+  preview: {
+    host: '127.0.0.1',
+    port: 43128,
+    allowedHosts: ['.trycloudflare.com', 'localhost', '127.0.0.1'],
+  },
+  server: {
+    host: '127.0.0.1',
+    port: 43128,
+    allowedHosts: ['.trycloudflare.com', 'localhost', '127.0.0.1'],
+  },
+  build: {
+    target: 'es2020',
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          motion: ['gsap', 'gsap/ScrollTrigger', 'lenis'],
+          react: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
+})
